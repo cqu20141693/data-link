@@ -1,0 +1,33 @@
+server:
+  port: 9093
+spring:
+  cloud:
+    nacos:
+      config:
+        server-addr: 172.30.203.22:8848
+        file-extension: yml
+        namespace: ca1d1ded-cb0b-460c-8efa-7e665c7a34e0
+      discovery:
+        server-addr: 172.30.203.22:8848
+        register-enabled: false
+com:
+  chongctech:
+    device:
+      link:
+        mqtt:
+          enableWebSocket: true
+          port: 1883
+          boss-group-size: 2
+          process-group-size: 4
+          worker-group-size: 4
+          max-link: 8000
+          min-heart-beat-second: 120
+    service:
+      pulsar:
+        service-url: pulsar://172.30.203.25:6650,172.30.203.26:6650,172.30.203.24:6650
+        jwt-token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjY3RlY2gifQ.TkCwKZIW-CCQEI6qjoAnEImpJzDymkYthWUymGQwArg
+        link-change-topic: persistent://cctech/device/raw-link-event-topic
+        publish-topic: persistent://cctech/device/raw-publish-topic
+        send-action-topic: persistent://cctech/device/raw-down-topic
+
+

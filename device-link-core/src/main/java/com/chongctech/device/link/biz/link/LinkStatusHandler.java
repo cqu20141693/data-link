@@ -1,0 +1,71 @@
+package com.chongctech.device.link.biz.link;
+
+import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
+import com.chongctech.device.link.biz.model.link.ChannelInfo;
+import com.chongctech.device.link.biz.model.link.LinkInfo;
+import io.netty.channel.Channel;
+
+public interface LinkStatusHandler {
+    /**
+     * 判别某个链接是否存在
+     *
+     * @param linkTag linkTag
+     * @return true表示存在，false表示不存在
+     */
+    boolean hasLink(String linkTag);
+
+    /**
+     * 由服务发起，需要检测当前链路情况
+     *
+     * @param linkTag
+     * @param sessionKey
+     * @param cause
+     * @return
+     */
+    boolean disconnectFromService(String linkTag, String sessionKey, long time, String cause);
+
+    /**
+     * 由本地channel发起链路断开，channel强绑定，不用检测sessionKey等。
+     *
+     * @param channel
+     * @param cause
+     * @return
+     */
+    ChannelInfo disconnectFromLocal(Channel channel, String cause);
+
+    /**
+     * 断开所有连接
+     */
+    void disconnectAllLink();
+
+    /**
+     * 链路存活事件
+     *
+     * @param channel
+     * @param keepAlive
+     * @return
+     */
+    boolean reportLinkAlive(Channel channel, Integer keepAlive);
+
+    /**
+     * 链接登录记录，
+     *
+     * @param linkTag
+     * @param linkInfo
+     * @param signatureTag
+     * @return 是否成功
+     */
+    boolean linkLocalRecord(String linkTag, String sessionKey, DeviceTypeEnum deviceType, LinkInfo linkInfo, String signatureTag);
+
+    /**
+     * 本地记录表检查，
+     *
+     * @param linkTag
+     */
+    ChannelInfo loginLocalCheck(String linkTag);
+
+    /**
+     * 返回当前broker上的客户端链路的数量
+     */
+    int getLinkCount();
+}

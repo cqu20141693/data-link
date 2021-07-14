@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: device-link
+  profiles:
+    active: native
+  main:
+    allow-bean-definition-overriding: true
