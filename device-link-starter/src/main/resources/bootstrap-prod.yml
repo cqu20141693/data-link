@@ -8,3 +8,6 @@ spring:
       discovery:
         server-addr: 172.30.203.22:8848
         register-enabled: false
+springfox:
+  documentation:
+    enabled: false
