@@ -39,14 +39,17 @@ public class DeviceLinkAPI {
 
     @ApiOperation(value = "send qos0 msg", notes = "发送qos 0 消息")
     @PostMapping("sendQos0Msg")
-    Boolean sendQos0Msg(@RequestParam("linkTag") String linkTag, @RequestParam("bizId") String topic,
+    Boolean sendQos0Msg(@RequestParam("linkTag") String linkTag, @RequestParam("topic") String topic,
                         @RequestBody byte[] content) {
         return linkService.sendQos0Msg(linkTag, topic, content);
     }
 
     @ApiOperation(value = "disconnect Link by session", notes = "通过sessionKey断开链路")
     @GetMapping("disconnectLinkBySession")
-    boolean disconnectLinkBySession(String linkTag, String sessionKey, long time, String cause) {
+    boolean disconnectLinkBySession(@RequestParam("linkTag") String linkTag,
+                                    @RequestParam("sessionKey") String sessionKey,
+                                    @RequestParam("time") Long time,
+                                    @RequestParam("cause") String cause) {
         return linkService.disconnectLink(linkTag, sessionKey, time, cause);
     }
 }
