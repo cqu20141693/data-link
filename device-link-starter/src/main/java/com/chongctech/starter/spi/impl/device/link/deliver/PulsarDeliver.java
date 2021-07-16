@@ -58,7 +58,7 @@ public class PulsarDeliver implements DeliverRawService {
             publishProducer = config(producer,
                     client.newProducer(Schema.JSON(PublishMessageModel.class)).topic(pulsarConfig.getPublishTopic()));
         }
-        if (publishProducer == null || !publishProducer.isConnected()) {
+        if (sendActionProducer == null || !sendActionProducer.isConnected()) {
             sendActionProducer = config(producer,
                     client.newProducer(Schema.JSON(SendActionModel.class)).topic(pulsarConfig.getSendActionTopic()));
         }

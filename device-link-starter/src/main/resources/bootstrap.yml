@@ -2,6 +2,6 @@ spring:
   application:
     name: device-link
   profiles:
-    active: native
+    active: dev
   main:
     allow-bean-definition-overriding: true
