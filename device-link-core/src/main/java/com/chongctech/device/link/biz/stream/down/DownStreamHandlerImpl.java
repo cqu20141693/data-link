@@ -1,5 +1,6 @@
 package com.chongctech.device.link.biz.stream.down;
 
+import com.chongctech.device.common.model.device.base.CmdStatus;
 import com.chongctech.device.common.model.device.deliver.raw.SendActionModel;
 import com.chongctech.device.link.biz.BrokerMetrics;
 import com.chongctech.device.link.biz.executor.BizProcessExecutors;
@@ -137,14 +138,16 @@ public class DownStreamHandlerImpl extends DownStreamBase implements DownStreamH
                 if (willSendInfo == null) {
                     break;
                 }
-                int messageId = willSendInfo.getMessageId() == -1 ? linkInfo.nextPacketId() : willSendInfo.getMessageId();
+                int messageId =
+                        willSendInfo.getMessageId() == -1 ? linkInfo.nextPacketId() : willSendInfo.getMessageId();
 
-                ChannelFuture channelFuture = mqttPush(channel, willSendInfo.getTopic(), willSendInfo.getPayload(), 1, messageId,
-                        () -> {
-                            //qos1发送前操作，先加入发送session记录
-                            qos1Session.add(willSendInfo.getLinkTag(), messageId, willSendInfo);
-                            return true;
-                        });
+                ChannelFuture channelFuture =
+                        mqttPush(channel, willSendInfo.getTopic(), willSendInfo.getPayload(), 1, messageId,
+                                () -> {
+                                    //qos1发送前操作，先加入发送session记录
+                                    qos1Session.add(willSendInfo.getLinkTag(), messageId, willSendInfo);
+                                    return true;
+                                });
 
                 //下行推送后操作
                 if (channelFuture != null) {
@@ -154,7 +157,7 @@ public class DownStreamHandlerImpl extends DownStreamBase implements DownStreamH
                         sendActionModel.setLinkTag(willSendInfo.getLinkTag());
                         sendActionModel.setBizId(willSendInfo.getBizId());
                         sendActionModel.setTimeStamp(System.currentTimeMillis());
-                        sendActionModel.setActionType(SendActionModel.ActionType.SEND);
+                        sendActionModel.setActionType(CmdStatus.SEND);
                         deliverRawService.deliverSendActionMsg(sendActionModel);
                     });
                 } else {
@@ -162,7 +165,7 @@ public class DownStreamHandlerImpl extends DownStreamBase implements DownStreamH
                     sendActionModel.setLinkTag(willSendInfo.getLinkTag());
                     sendActionModel.setBizId(willSendInfo.getBizId());
                     sendActionModel.setTimeStamp(System.currentTimeMillis());
-                    sendActionModel.setActionType(SendActionModel.ActionType.SEND_FAIL);
+                    sendActionModel.setActionType(CmdStatus.SEND_FAIL);
                     deliverRawService.deliverSendActionMsg(sendActionModel);
                 }
             }

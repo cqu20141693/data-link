@@ -3,6 +3,7 @@ package com.chongctech.device.link.biz.stream.up;
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_ACCEPTED;
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED;
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION;
+import com.chongctech.device.common.model.device.base.CmdStatus;
 import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.ChangeTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.LinkChangeModel;
@@ -321,7 +322,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
             sendActionModel.setLinkTag(sendInfo.getLinkTag());
             sendActionModel.setBizId(sendInfo.getBizId());
             sendActionModel.setTimeStamp(System.currentTimeMillis());
-            sendActionModel.setActionType(SendActionModel.ActionType.ACK);
+            sendActionModel.setActionType(CmdStatus.ACK);
             deliverRawService.deliverSendActionMsg(sendActionModel);
         }
     }

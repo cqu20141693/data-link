@@ -1,5 +1,6 @@
 package com.chongctech.device.link.biz.session;
 
+import com.chongctech.device.common.model.device.base.CmdStatus;
 import com.chongctech.device.common.model.device.deliver.raw.SendActionModel;
 import com.chongctech.device.common.util.cache.CacheCleaner;
 import com.chongctech.device.link.biz.model.link.SendInfo;
@@ -42,16 +43,19 @@ public class Qos1Session {
                 .expireAfter(new Expiry<Qos1Key, SendInfo>() {
                     @Override
                     public long expireAfterCreate(@NonNull Qos1Key key, @NonNull SendInfo value, long currentTime) {
-                        return (value.getAckWaitTime() <= 0 || value.getAckWaitTime() > 30) ? 10 : value.getAckWaitTime();
+                        return (value.getAckWaitTime() <= 0 || value.getAckWaitTime() > 30) ? 10 :
+                                value.getAckWaitTime();
                     }
 
                     @Override
-                    public long expireAfterUpdate(@NonNull Qos1Key key, @NonNull SendInfo value, long currentTime, @NonNegative long currentDuration) {
+                    public long expireAfterUpdate(@NonNull Qos1Key key, @NonNull SendInfo value, long currentTime,
+                                                  @NonNegative long currentDuration) {
                         return currentDuration;
                     }
 
                     @Override
-                    public long expireAfterRead(@NonNull Qos1Key key, @NonNull SendInfo value, long currentTime, @NonNegative long currentDuration) {
+                    public long expireAfterRead(@NonNull Qos1Key key, @NonNull SendInfo value, long currentTime,
+                                                @NonNegative long currentDuration) {
                         return currentDuration;
                     }
                 })
@@ -62,7 +66,7 @@ public class Qos1Session {
                             sendActionModel.setLinkTag(sendInfo.getLinkTag());
                             sendActionModel.setBizId(sendInfo.getBizId());
                             sendActionModel.setTimeStamp(System.currentTimeMillis());
-                            sendActionModel.setActionType(SendActionModel.ActionType.ACK_EXPIRE);
+                            sendActionModel.setActionType(CmdStatus.ACK_EXPIRE);
                             deliverRawService.deliverSendActionMsg(sendActionModel);
                         }
 
@@ -120,8 +124,12 @@ public class Qos1Session {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             Qos1Key qos1Key = (Qos1Key) o;
             return Objects.equals(linkTag, qos1Key.linkTag) &&
                     Objects.equals(msgId, qos1Key.msgId);
