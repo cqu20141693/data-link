@@ -59,7 +59,7 @@
     <dependency>
       <groupId>com.chongctech</groupId>
       <artifactId>device-auth-client</artifactId>
-      <version>v1.0.0-SNAPSHOT</version>
+      <version>v1.0.0-release</version>
     </dependency>
   </dependencies>
   <build>
