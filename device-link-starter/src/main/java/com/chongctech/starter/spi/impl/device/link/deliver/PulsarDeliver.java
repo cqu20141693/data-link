@@ -28,9 +28,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PulsarDeliver implements DeliverRawService {
 
-    private Producer<LinkChangeModel> linkChangProducer;
-    private Producer<PublishMessageModel> publishProducer;
-    private Producer<SendActionModel> sendActionProducer;
+    private Producer<String> linkChangProducer;
+    private Producer<String> publishProducer;
+    private Producer<String> sendActionProducer;
     private PulsarClient client;
 
     private PulsarConfig pulsarConfig;
@@ -52,15 +52,15 @@ public class PulsarDeliver implements DeliverRawService {
         PulsarConfig.ProducerProperties producer = pulsarConfig.getProducer();
         if (linkChangProducer == null || !linkChangProducer.isConnected()) {
             linkChangProducer = config(producer,
-                    client.newProducer(Schema.JSON(LinkChangeModel.class)).topic(pulsarConfig.getLinkChangeTopic()));
+                    client.newProducer(Schema.STRING).topic(pulsarConfig.getLinkChangeTopic()));
         }
         if (publishProducer == null || !publishProducer.isConnected()) {
             publishProducer = config(producer,
-                    client.newProducer(Schema.JSON(PublishMessageModel.class)).topic(pulsarConfig.getPublishTopic()));
+                    client.newProducer(Schema.STRING).topic(pulsarConfig.getPublishTopic()));
         }
         if (sendActionProducer == null || !sendActionProducer.isConnected()) {
             sendActionProducer = config(producer,
-                    client.newProducer(Schema.JSON(SendActionModel.class)).topic(pulsarConfig.getSendActionTopic()));
+                    client.newProducer(Schema.STRING).topic(pulsarConfig.getSendActionTopic()));
         }
     }
 
@@ -80,11 +80,12 @@ public class PulsarDeliver implements DeliverRawService {
 
     @Override
     public void deliverLinkChangeMsg(LinkChangeModel linkChangeModel) {
+
         CompletableFuture<MessageId> future = linkChangProducer.newMessage()
                 .eventTime(System.currentTimeMillis())
                 .properties(new HashMap<>())
                 .key(linkChangeModel.getLinkTag())
-                .value(linkChangeModel).sendAsync();
+                .value(JSONObject.toJSONString(linkChangeModel)).sendAsync();
         handle("linkChangeModel", linkChangeModel, future);
     }
 
@@ -105,7 +106,7 @@ public class PulsarDeliver implements DeliverRawService {
                 .eventTime(System.currentTimeMillis())
                 .properties(new HashMap<>())
                 .key(publishMessageModel.getLinkTag())
-                .value(publishMessageModel).sendAsync();
+                .value(JSONObject.toJSONString(publishMessageModel)).sendAsync();
         handle("publishMessageModel", publishMessageModel, future);
         return true;
     }
@@ -116,7 +117,7 @@ public class PulsarDeliver implements DeliverRawService {
                 .eventTime(System.currentTimeMillis())
                 .properties(new HashMap<>())
                 .key(sendActionModel.getLinkTag())
-                .value(sendActionModel).sendAsync();
+                .value(JSONObject.toJSONString(sendActionModel)).sendAsync();
         handle("sendActionModel", sendActionModel, future);
 
     }
