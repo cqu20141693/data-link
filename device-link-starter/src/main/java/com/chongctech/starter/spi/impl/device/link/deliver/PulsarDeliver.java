@@ -5,18 +5,13 @@ import com.chongctech.device.common.model.device.deliver.raw.LinkChangeModel;
 import com.chongctech.device.common.model.device.deliver.raw.PublishMessageModel;
 import com.chongctech.device.common.model.device.deliver.raw.SendActionModel;
 import com.chongctech.device.link.spi.deliver.DeliverRawService;
-import com.chongctech.starter.config.PulsarConfig;
-import java.util.HashMap;
+import com.chongctech.pulsar.core.domain.ProducerRecord;
+import com.chongctech.pulsar.core.producer.StringProducerTemplate;
+import com.chongctech.starter.config.PulsarOutTopicConfig;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.MessageId;
-import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.ProducerBuilder;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.Schema;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -28,65 +23,40 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PulsarDeliver implements DeliverRawService {
 
-    private Producer<String> linkChangProducer;
-    private Producer<String> publishProducer;
-    private Producer<String> sendActionProducer;
-    private PulsarClient client;
 
-    private PulsarConfig pulsarConfig;
+    @Autowired
+    private StringProducerTemplate stringProducerTemplate;
 
-    public PulsarDeliver(PulsarConfig pulsarConfig) throws PulsarClientException {
-        this.pulsarConfig = pulsarConfig;
-        buildProducer(pulsarConfig);
-    }
-
-    private void buildProducer(PulsarConfig pulsarConfig) throws PulsarClientException {
-        if (client == null || client.isClosed()) {
-            client = PulsarClient.builder()
-                    .serviceUrl(pulsarConfig.getServiceUrl())
-                    .authentication(AuthenticationFactory.token(pulsarConfig.getJwtToken()))
-                    .ioThreads(pulsarConfig.getIoThread())
-                    .build();
-        }
-
-        PulsarConfig.ProducerProperties producer = pulsarConfig.getProducer();
-        if (linkChangProducer == null || !linkChangProducer.isConnected()) {
-            linkChangProducer = config(producer,
-                    client.newProducer(Schema.STRING).topic(pulsarConfig.getLinkChangeTopic()));
-        }
-        if (publishProducer == null || !publishProducer.isConnected()) {
-            publishProducer = config(producer,
-                    client.newProducer(Schema.STRING).topic(pulsarConfig.getPublishTopic()));
-        }
-        if (sendActionProducer == null || !sendActionProducer.isConnected()) {
-            sendActionProducer = config(producer,
-                    client.newProducer(Schema.STRING).topic(pulsarConfig.getSendActionTopic()));
-        }
-    }
-
-    private <T> Producer<T> config(PulsarConfig.ProducerProperties producer,
-                                   ProducerBuilder<T> builder) throws PulsarClientException {
-        return builder
-                .enableBatching(producer.getBatchingEnabled())
-                .blockIfQueueFull(producer.getBlockIfQueueFull())
-                .maxPendingMessages(producer.getMaxPendingMessages())
-                .batchingMaxPublishDelay(producer.getBatchingMaxPublishDelayMicros(), TimeUnit.MICROSECONDS)
-                .batchingMaxMessages(producer.getBatchingMaxMessages())
-                .batchingMaxBytes(producer.getBatchMaxBytes())
-                .accessMode(producer.getAccessMode())
-                .create();
-    }
-
+    @Autowired
+    private PulsarOutTopicConfig outTopicConfig;
 
     @Override
     public void deliverLinkChangeMsg(LinkChangeModel linkChangeModel) {
-
-        CompletableFuture<MessageId> future = linkChangProducer.newMessage()
-                .eventTime(System.currentTimeMillis())
-                .properties(new HashMap<>())
-                .key(linkChangeModel.getLinkTag())
-                .value(JSONObject.toJSONString(linkChangeModel)).sendAsync();
+        ProducerRecord<String> record =
+                new ProducerRecord<>(outTopicConfig.getLinkChangeTopic(), linkChangeModel.getLinkTag(),
+                        JSONObject.toJSONString(linkChangeModel));
+        CompletableFuture<MessageId> future = stringProducerTemplate.sendAsync(record);
         handle("linkChangeModel", linkChangeModel, future);
+    }
+
+    @Override
+    public boolean deliverPublishMsg(PublishMessageModel publishMessageModel) {
+        ProducerRecord<String> record =
+                new ProducerRecord<>(outTopicConfig.getPublishTopic(), publishMessageModel.getLinkTag(),
+                        JSONObject.toJSONString(publishMessageModel));
+        CompletableFuture<MessageId> future = stringProducerTemplate.sendAsync(record);
+        handle("publishMessageModel", publishMessageModel, future);
+        return true;
+    }
+
+    @Override
+    public void deliverSendActionMsg(SendActionModel sendActionModel) {
+        ProducerRecord<String> record =
+                new ProducerRecord<>(outTopicConfig.getSendActionTopic(), sendActionModel.getLinkTag(),
+                        JSONObject.toJSONString(sendActionModel));
+        CompletableFuture<MessageId> future = stringProducerTemplate.sendAsync(record);
+        handle("sendActionModel", sendActionModel, future);
+
     }
 
     private CompletableFuture<Boolean> handle(String key, Object model,
@@ -100,25 +70,4 @@ public class PulsarDeliver implements DeliverRawService {
         });
     }
 
-    @Override
-    public boolean deliverPublishMsg(PublishMessageModel publishMessageModel) {
-        CompletableFuture<MessageId> future = publishProducer.newMessage()
-                .eventTime(System.currentTimeMillis())
-                .properties(new HashMap<>())
-                .key(publishMessageModel.getLinkTag())
-                .value(JSONObject.toJSONString(publishMessageModel)).sendAsync();
-        handle("publishMessageModel", publishMessageModel, future);
-        return true;
-    }
-
-    @Override
-    public void deliverSendActionMsg(SendActionModel sendActionModel) {
-        CompletableFuture<MessageId> future = sendActionProducer.newMessage()
-                .eventTime(System.currentTimeMillis())
-                .properties(new HashMap<>())
-                .key(sendActionModel.getLinkTag())
-                .value(JSONObject.toJSONString(sendActionModel)).sendAsync();
-        handle("sendActionModel", sendActionModel, future);
-
-    }
 }
