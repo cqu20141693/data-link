@@ -87,7 +87,7 @@ public interface DownStreamHandler {
      * @param ackWaitTime 消息确认等待时间
      * @return true标识成功
      */
-    boolean sendQos1Msg(String linkTag, String topic, byte[] payload, String bizId, int ackWaitTime);
+    boolean sendQos1Msg(String linkTag, String topic, byte[] payload, String bizId, long ackWaitTime);
 
     /**
      * 刷写链路可写数据

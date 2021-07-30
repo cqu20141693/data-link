@@ -38,7 +38,7 @@ public class LinkServiceImpl implements LinkService {
     }
 
     @Override
-    public boolean sendQos1Msg(String linkTag, String bizId, String topic, byte[] content, int ackWaitTime) {
+    public boolean sendQos1Msg(String linkTag, String bizId, String topic, byte[] content, long ackWaitTime) {
         try {
             return downStreamHandler.sendQos1Msg(linkTag, topic, content, bizId, ackWaitTime);
         } catch (Exception e) {

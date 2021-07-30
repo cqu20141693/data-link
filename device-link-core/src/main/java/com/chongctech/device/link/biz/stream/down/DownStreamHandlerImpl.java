@@ -107,7 +107,7 @@ public class DownStreamHandlerImpl extends DownStreamBase implements DownStreamH
     }
 
     @Override
-    public boolean sendQos1Msg(String linkTag, String topic, byte[] payload, String bizId, int ackWaitTime) {
+    public boolean sendQos1Msg(String linkTag, String topic, byte[] payload, String bizId, long ackWaitTime) {
         //拿通信链路
         LinkInfo linkInfo = linkSession.getLinkInfo(linkTag);
         if (linkInfo == null) {

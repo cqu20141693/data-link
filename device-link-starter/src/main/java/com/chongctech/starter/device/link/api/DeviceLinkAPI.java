@@ -33,7 +33,7 @@ public class DeviceLinkAPI {
     @PostMapping("sendQos1Msg")
     Boolean sendQos1Msg(@RequestParam("linkTag") String linkTag, @RequestParam("bizId") String bizId,
                         @RequestParam("topic") String topic,
-                        @RequestParam("ackWaitTime") Integer ackWaitTime, @RequestBody byte[] content) {
+                        @RequestParam("ackWaitTime") Long ackWaitTime, @RequestBody byte[] content) {
         return linkService.sendQos1Msg(linkTag, bizId, topic, content, ackWaitTime);
     }
 

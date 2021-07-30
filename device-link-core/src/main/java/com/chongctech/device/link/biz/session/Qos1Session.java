@@ -10,6 +10,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.index.qual.NonNegative;
@@ -36,6 +37,8 @@ public class Qos1Session {
      */
     private Cache<Qos1Key, SendInfo> cacheQos1SendCache;
 
+    private final long DEFAULT_EXPIRE_TIME= TimeUnit.SECONDS.toNanos(10);
+    private final long MAX_EXPIRE_TIME= TimeUnit.SECONDS.toNanos(30);
     @PostConstruct
     public void init() {
         //初始化命令缓存
@@ -43,7 +46,7 @@ public class Qos1Session {
                 .expireAfter(new Expiry<Qos1Key, SendInfo>() {
                     @Override
                     public long expireAfterCreate(@NonNull Qos1Key key, @NonNull SendInfo value, long currentTime) {
-                        return (value.getAckWaitTime() <= 0 || value.getAckWaitTime() > 30) ? 10 :
+                        return (value.getAckWaitTime() <= 0 || value.getAckWaitTime() > MAX_EXPIRE_TIME) ? DEFAULT_EXPIRE_TIME :
                                 value.getAckWaitTime();
                     }
 

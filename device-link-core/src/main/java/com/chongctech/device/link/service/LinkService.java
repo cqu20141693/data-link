@@ -17,7 +17,7 @@ public interface LinkService {
      *
      * @return the boolean
      */
-    boolean sendQos1Msg(String linkTag, String bizId, String topic, byte[] content, int ackWaitTime);
+    boolean sendQos1Msg(String linkTag, String bizId, String topic, byte[] content, long ackWaitTime);
 
     boolean sendQos0Msg(String linkTag, String topic, byte[] content);
 

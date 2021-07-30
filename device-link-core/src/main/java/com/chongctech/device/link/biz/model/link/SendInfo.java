@@ -1,5 +1,6 @@
 package com.chongctech.device.link.biz.model.link;
 
+import java.util.concurrent.TimeUnit;
 import lombok.Data;
 
 @Data
@@ -28,7 +29,7 @@ public class SendInfo {
     /**
      * ack消息等待时间, 单位秒
      */
-    private int ackWaitTime = 10;
+    private long ackWaitTime = TimeUnit.SECONDS.toNanos(10);
     /**
      * meg id
      */
@@ -44,7 +45,7 @@ public class SendInfo {
     }
 
     public SendInfo(String linkTag, String bizId,
-                    String topic, byte[] payload, int qos, int ackWaitTime) {
+                    String topic, byte[] payload, int qos, long ackWaitTime) {
         this.linkTag = linkTag;
         this.bizId = bizId;
         this.topic = topic;
