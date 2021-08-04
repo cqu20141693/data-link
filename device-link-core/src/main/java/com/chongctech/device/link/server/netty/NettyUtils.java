@@ -126,5 +126,4 @@ public class NettyUtils {
             channelFuture.addListener((ChannelFutureListener) future -> channelFuture.channel().close());
         }
     }
-
 }

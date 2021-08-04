@@ -1,6 +1,7 @@
 package com.chongctech.device.link.spi.authenticate;
 
 import com.chongctech.device.link.biz.model.authenticate.AuthenticateResponse;
+import com.chongctech.service.common.call.result.CommonResult;
 
 public interface AuthenticateServiceFacade {
     /**
@@ -15,5 +16,5 @@ public interface AuthenticateServiceFacade {
      * @param keepAliveSeconds
      * @return if loginCheck passed, then return the clientInfo, otherwise return null
      */
-    AuthenticateResponse authenticate(String clientIdentifier, String username, String password, String sessionKey, String nodeTag, Integer port, int keepAliveSeconds);
+    CommonResult<AuthenticateResponse> authenticate(String clientIdentifier, String username, String password, String sessionKey, String nodeTag, Integer port, int keepAliveSeconds);
 }

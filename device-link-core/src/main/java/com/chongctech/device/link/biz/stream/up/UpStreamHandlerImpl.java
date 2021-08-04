@@ -1,8 +1,5 @@
 package com.chongctech.device.link.biz.stream.up;
 
-import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_ACCEPTED;
-import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED;
-import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION;
 import com.chongctech.device.common.model.device.base.CmdStatus;
 import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.ChangeTypeEnum;
@@ -26,28 +23,21 @@ import com.chongctech.device.link.server.netty.NettyUtils;
 import com.chongctech.device.link.spi.authenticate.AuthenticateServiceFacade;
 import com.chongctech.device.link.spi.deliver.DeliverRawService;
 import com.chongctech.device.link.util.NodeUtil;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelPipeline;
-import io.netty.handler.codec.mqtt.MqttConnectMessage;
-import io.netty.handler.codec.mqtt.MqttMessage;
-import io.netty.handler.codec.mqtt.MqttPubAckMessage;
-import io.netty.handler.codec.mqtt.MqttPublishMessage;
-import io.netty.handler.codec.mqtt.MqttQoS;
-import io.netty.handler.codec.mqtt.MqttSubscribeMessage;
-import io.netty.handler.codec.mqtt.MqttUnsubscribeMessage;
-import io.netty.handler.codec.mqtt.MqttVersion;
+import com.chongctech.service.common.call.result.CommonResult;
+import io.netty.channel.*;
+import io.netty.handler.codec.mqtt.*;
 import io.netty.util.CharsetUtil;
-import java.util.Objects;
-import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+
+import java.util.Objects;
+import java.util.Optional;
+
+import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.*;
 
 @Component
 public class UpStreamHandlerImpl implements UpStreamHandler {
@@ -87,6 +77,12 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
     @Autowired
     private NodeUtil nodeUtil;
 
+    private void connectFailClose(Channel channel, String failMsg, MqttConnectReturnCode returnCode) {
+        ChannelFuture notifyFuture = downStreamHandler.sendError(channel, failMsg);
+        notifyFuture.addListener((ChannelFutureListener) future ->
+                NettyUtils.asyncCloseChannel(downStreamHandler.replyConnAck(channel, returnCode)));
+    }
+
     @Override
     public void handleConnect(Channel channel, MqttConnectMessage msg) {
         String clientIdentifier = msg.payload().clientIdentifier();
@@ -96,7 +92,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         if (clientIdentifier == null) {
             logger.warn("processConnect. the clientIdentifier is null. channel: {}, it will be disconnected",
                     channel.toString());
-            NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel, "clientIdentifier is null"));
+            connectFailClose(channel, "clientIdentifier should not be null", CONNECTION_REFUSED_IDENTIFIER_REJECTED);
             return;
         }
 
@@ -106,16 +102,16 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
                     "processConnect. the keepAlive second is less then {}, the clientIdentifier = {} is forbidden to "
                             + "connect to this server"
                     , mqttConfig.getMinHeartBeatSecond(), clientIdentifier);
-            NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel,
-                    "the heartbeat second must >= " + mqttConfig.getMinHeartBeatSecond()));
+            connectFailClose(channel, "keepAlive must >= " + mqttConfig.getMinHeartBeatSecond(),
+                    CONNECTION_REFUSED_IDENTIFIER_REJECTED);
             return;
         }
 
         logger.info("processConnect. clientIdentifier={}, username={}", clientIdentifier, userName);
         if (brokerMetrics.getLinkAllCount() >= mqttConfig.getMaxLink()) {
             logger.warn("processConnect. the connection count reach the max count!");
-            String message = "the connection count reach the maxsize";
-            NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel, message));
+            connectFailClose(channel, "server connection count reach the maxsize",
+                    CONNECTION_REFUSED_IDENTIFIER_REJECTED);
             return;
         }
 
@@ -136,22 +132,24 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
             if (Math.abs(now - connectTime) >= MAX_CONNECT_WAIT_MS || !channel.isActive()) {
                 logger.warn("processConnect. the connect message is timeout, refuse it! clientIdentifier={}",
                         clientIdentifier);
-                channel.close();
+                connectFailClose(channel, "the connect message is timeout",
+                        CONNECTION_REFUSED_IDENTIFIER_REJECTED);
                 return;
             } else {
                 logger.info("processConnect. begin auth clientIdentifier={}", clientIdentifier);
             }
             String sessionKey = RandomStringUtils.randomAlphanumeric(16);
             // login authentic
-            AuthenticateResponse response = authenticateService
-                    .authenticate(clientIdentifier, userName, passWord, sessionKey, nodeUtil.getNodeTag(),
-                            nodeUtil.getPort(), keepAlive);
-            if (response == null) {
+            CommonResult<AuthenticateResponse> authResult =
+                    authenticateService.authenticate(clientIdentifier, userName, passWord,
+                            sessionKey, nodeUtil.getNodeTag(), nodeUtil.getPort(), keepAlive);
+            if (!authResult.success()) {
                 logger.warn("processConnect. clientIdentifier: {} login failed.", clientIdentifier);
-                NettyUtils
-                        .asyncCloseChannel(downStreamHandler.replyConnAck(channel, CONNECTION_REFUSED_NOT_AUTHORIZED));
+                connectFailClose(channel, authResult.getMessage(), CONNECTION_REFUSED_NOT_AUTHORIZED);
                 return;
             }
+
+            AuthenticateResponse response = authResult.getData();
 
             // 新链路上线,本地记录发消息
             LinkInfo newLinkInfo = new LinkInfo(channel);
@@ -159,7 +157,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
             boolean recorded = linkStatusHandler.linkLocalRecord(response.getLinkTag(), sessionKey,
                     response.getDeviceTypeEnum(), newLinkInfo, response.getSignatureTag());
             if (!recorded) {
-                NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel, "server error"));
+                connectFailClose(channel, "server unavailable", CONNECTION_REFUSED_SERVER_UNAVAILABLE);
                 return;
             }
             //链路参数绑定到channel
@@ -183,13 +181,11 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
                     channelFuture.addListener((ChannelFutureListener) future -> {
                         String linkTag = NettyUtils.getLinkTag(channel);
                         if (future.isSuccess()) {
-
                             LinkTagUtil.LinkTagElements elements = LinkTagUtil.parseFromLinkTag(linkTag);
                             if (elements == null) {
                                 logger.warn("unexpected situation happen,linkTag parse fail. linkTag={}", linkTag);
                                 // linkTag error
-                                linkStatusHandler.disconnectFromLocal(channel,
-                                        "unexpected situation happen,linkTag parse fail;");
+                                linkStatusHandler.disconnectFromLocal(channel, "server error");
                                 return;
                             }
                             Optional.ofNullable(response.getWelcomeInfoModel())
@@ -198,7 +194,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
                         } else {
                             logger.error("replyConnAck failed,channel={},linkTag={},time={}", channel, linkTag, now);
                             //未完成connAck，设备链路已断开，主动清理
-                            linkStatusHandler.disconnectFromLocal(channel, "channel connAck failed while connected.");
+                            linkStatusHandler.disconnectFromLocal(channel, "conn ack send fail.");
                         }
 
                     });
