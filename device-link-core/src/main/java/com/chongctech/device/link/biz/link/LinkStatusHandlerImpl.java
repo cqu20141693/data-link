@@ -108,16 +108,16 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
             brokerMetrics.decLinkCount(NettyUtils.getChannelAuth(channel));
 
             //传递变更消息
-            LinkChangeModel linkChangeModel = new LinkChangeModel();
-            linkChangeModel.setLinkTag(linkTag);
-            linkChangeModel.setTimeStamp(time);
-            linkChangeModel.setChangeTypeEnum(ChangeTypeEnum.LINK_DISCONNECTED);
-            linkChangeModel.setNodeTag(nodeUtil.getNodeTag());
-            linkChangeModel.setSessionKey(sessionKey);
-            linkChangeModel.setPort(nodeUtil.getPort());
-            linkChangeModel.setSignatureTag(NettyUtils.getSignatureTag(channel));
-            linkChangeModel.setDeviceType(deviceTypeEnum);
-            deliverRawService.deliverLinkChangeMsg(linkChangeModel);
+            deliverRawService.deliverLinkChangeMsg(new LinkChangeModel()
+                    .setLinkTag(linkTag)
+                    .setTimeStamp(time)
+                    .setChangeTypeEnum(ChangeTypeEnum.LINK_DISCONNECTED)
+                    .setNodeTag(nodeUtil.getNodeTag())
+                    .setSessionKey(sessionKey)
+                    .setPort(nodeUtil.getPort())
+                    .setSignatureTag(NettyUtils.getSignatureTag(channel))
+                    .setDeviceType(deviceTypeEnum)
+                    .setReasonMsg(cause));
         } catch (Exception e) {
             logger.error("error occur when doDisconnectLink. {}, linkTag={}", e.getMessage(), linkTag);
             return false;
@@ -138,22 +138,19 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
 
     @Override
     public boolean reportLinkAlive(Channel channel, Integer keepAlive) {
-        // logger.debug("linkAlive method invoked,keepAlive={}", keepAlive);
         String linkTag = NettyUtils.getLinkTag(channel);
         if (!StringUtils.isBlank(linkTag)) {
-            bizProcessExecutors.submitConnTask(linkTag, () -> {
-                LinkChangeModel linkChangeModel = new LinkChangeModel()
-                        .setLinkTag(linkTag)
-                        .setNodeTag(nodeUtil.getNodeTag())
-                        .setPort(nodeUtil.getPort())
-                        .setDeviceType(NettyUtils.getDeviceType(channel))
-                        .setSignatureTag(NettyUtils.getSignatureTag(channel))
-                        .setKeepAliveSeconds(keepAlive)
-                        .setTimeStamp(System.currentTimeMillis())
-                        .setSessionKey(NettyUtils.getSessionKey(channel))
-                        .setChangeTypeEnum(ChangeTypeEnum.LINK_ALIVE);
-                deliverRawService.deliverLinkChangeMsg(linkChangeModel);
-            });
+            bizProcessExecutors.submitConnTask(linkTag, () ->
+                    deliverRawService.deliverLinkChangeMsg(new LinkChangeModel()
+                            .setLinkTag(linkTag)
+                            .setNodeTag(nodeUtil.getNodeTag())
+                            .setPort(nodeUtil.getPort())
+                            .setDeviceType(NettyUtils.getDeviceType(channel))
+                            .setSignatureTag(NettyUtils.getSignatureTag(channel))
+                            .setKeepAliveSeconds(keepAlive)
+                            .setTimeStamp(System.currentTimeMillis())
+                            .setSessionKey(NettyUtils.getSessionKey(channel))
+                            .setChangeTypeEnum(ChangeTypeEnum.LINK_ALIVE)));
         } else {
             NettyUtils
                     .asyncCloseChannel(downStreamHandler.sendError(channel, "linkTag is blank when trigger linkAlive"));
@@ -175,17 +172,16 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
         }
 
         //本地记录成功，传递登录消息
-        LinkChangeModel linkChangeModel = new LinkChangeModel();
-        linkChangeModel.setLinkTag(linkTag);
-        linkChangeModel.setSessionKey(sessionKey);
-        linkChangeModel.setDeviceType(deviceType);
-        linkChangeModel.setTimeStamp(System.currentTimeMillis());
-        linkChangeModel.setChangeTypeEnum(ChangeTypeEnum.LINK_CONNECTED);
-        linkChangeModel.setNodeTag(nodeUtil.getNodeTag());
-        linkChangeModel.setPort(nodeUtil.getPort());
-        linkChangeModel.setSignatureTag(signatureTag);
-
-        deliverRawService.deliverLinkChangeMsg(linkChangeModel);
+        deliverRawService.deliverLinkChangeMsg(new LinkChangeModel()
+                .setLinkTag(linkTag)
+                .setSessionKey(sessionKey)
+                .setDeviceType(deviceType)
+                .setTimeStamp(System.currentTimeMillis())
+                .setChangeTypeEnum(ChangeTypeEnum.LINK_CONNECTED)
+                .setNodeTag(nodeUtil.getNodeTag())
+                .setPort(nodeUtil.getPort())
+                .setSignatureTag(signatureTag)
+                .setReasonMsg("successfully connected."));
         return true;
     }
 

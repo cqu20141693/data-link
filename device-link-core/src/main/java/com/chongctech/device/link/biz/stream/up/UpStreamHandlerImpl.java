@@ -219,7 +219,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
     public void handlePublish(Channel channel, MqttPublishMessage msg) {
         String linkTag = NettyUtils.getLinkTag(channel);
         String sessionKey = NettyUtils.getSessionKey(channel);
-        if (StringUtils.isEmpty(linkTag) || StringUtils.isEmpty(sessionKey)) {
+        if (!StringUtils.hasText(linkTag) || !StringUtils.hasText(sessionKey)) {
             logger.error("channel {} linkTag or sessionKey is Empty!", channel);
             NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel, "link channel has not been init."));
             return;
@@ -232,11 +232,21 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         }
 
         logger.debug("processPublish(...) linkTag={}", linkTag);
-        if (Objects.isNull(msg) ||
-                Objects.isNull(msg.variableHeader()) ||
-                StringUtils.isEmpty(msg.variableHeader().topicName())) {
-            logger.error("handlePublish: linkTag={}, channel {} ,msg info error, msg={}", linkTag, channel, msg);
-            linkStatusHandler.disconnectFromLocal(channel, "msg info error");
+        if (Objects.isNull(msg)) {
+            logger.error("handlePublish: linkTag={}, channel {} ,mqtt publish message should not be null", linkTag, channel);
+            linkStatusHandler.disconnectFromLocal(channel, "mqtt publish message is null.");
+            return;
+        }
+
+        if (Objects.isNull(msg.variableHeader())) {
+            logger.error("handlePublish: linkTag={}, channel {} ,mqtt publish message header should not be null, msg={}", linkTag, channel, msg);
+            linkStatusHandler.disconnectFromLocal(channel, "mqtt publish message header should is null");
+            return;
+        }
+
+        if (!StringUtils.hasText(msg.variableHeader().topicName())) {
+            logger.error("handlePublish: linkTag={}, channel {} ,mqtt publish message topic should not be empty, msg={}", linkTag, channel, msg);
+            linkStatusHandler.disconnectFromLocal(channel, "mqtt publish message topic should is empty");
             return;
         }
 
@@ -260,21 +270,15 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         final String topic = msg.variableHeader().topicName();
         DeviceTypeEnum deviceTypeEnum = NettyUtils.getDeviceType(channel);
 
-        bizProcessExecutors.submitProcessTask(linkTag, () -> {
-            PublishMessageModel publishMessageModel =
-                    new PublishMessageModel()
-                            .setLinkTag(linkTag)
-                            .setPayload(payload)
-                            .setTopic(topic)
-                            .setSessionKey(sessionKey)
-                            .setDeviceType(deviceTypeEnum)
-                            .setSignatureTag(NettyUtils.getSignatureTag(channel))
-                            .setTimeStamp(System.currentTimeMillis());
-            boolean result = deliverRawService.deliverPublishMsg(publishMessageModel);
-            if (!result) {
-                linkStatusHandler.disconnectFromLocal(channel, "server handle error.");
-            }
-        });
+        bizProcessExecutors.submitProcessTask(linkTag, () ->
+                deliverRawService.deliverPublishMsg(new PublishMessageModel()
+                        .setLinkTag(linkTag)
+                        .setPayload(payload)
+                        .setTopic(topic)
+                        .setSessionKey(sessionKey)
+                        .setDeviceType(deviceTypeEnum)
+                        .setSignatureTag(NettyUtils.getSignatureTag(channel))
+                        .setTimeStamp(System.currentTimeMillis())));
 
         //qos1 默认返回
         if (qos == MqttQoS.AT_LEAST_ONCE) {
@@ -356,28 +360,25 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
     @Override
     public void handleDisconnect(Channel channel) {
         logger.info("handleDisconnect.channel {}", channel);
-        linkStatusHandler.disconnectFromLocal(channel, "disconnect msg receive.");
+        linkStatusHandler.disconnectFromLocal(channel, "client's disconnect msg received.");
     }
 
     @Override
     public void handlePingReq(Channel channel, MqttMessage msg) {
         String linkTag = NettyUtils.getLinkTag(channel);
         String sessionKey = NettyUtils.getSessionKey(channel);
-        if (!StringUtils.isEmpty(linkTag)) {
+        if (StringUtils.hasText(linkTag)) {
             bizProcessExecutors.submitProcessTask(linkTag, () -> {
-                LinkChangeModel linkChangeModel = new LinkChangeModel();
-                linkChangeModel.setLinkTag(linkTag);
-                linkChangeModel.setTimeStamp(System.currentTimeMillis());
-                linkChangeModel.setChangeTypeEnum(ChangeTypeEnum.LINK_HEART_BEAT);
-                linkChangeModel.setNodeTag(nodeUtil.getNodeTag());
-                linkChangeModel.setSessionKey(sessionKey);
-                linkChangeModel.setKeepAliveSeconds(NettyUtils.getKeepAliveSeconds(channel));
-                DeviceTypeEnum deviceTypeEnum = NettyUtils.getDeviceType(channel);
-                linkChangeModel.setDeviceType(deviceTypeEnum);
-                linkChangeModel.setPort(nodeUtil.getPort());
-                linkChangeModel.setSignatureTag(NettyUtils.getSignatureTag(channel));
-
-                deliverRawService.deliverLinkChangeMsg(linkChangeModel);
+                deliverRawService.deliverLinkChangeMsg(new LinkChangeModel()
+                        .setLinkTag(linkTag)
+                        .setTimeStamp(System.currentTimeMillis())
+                        .setChangeTypeEnum(ChangeTypeEnum.LINK_HEART_BEAT)
+                        .setNodeTag(nodeUtil.getNodeTag())
+                        .setSessionKey(sessionKey)
+                        .setKeepAliveSeconds(NettyUtils.getKeepAliveSeconds(channel))
+                        .setDeviceType(NettyUtils.getDeviceType(channel))
+                        .setPort(nodeUtil.getPort())
+                        .setSignatureTag(NettyUtils.getSignatureTag(channel)));
 
                 downStreamHandler.replyPingResp(channel);
             });

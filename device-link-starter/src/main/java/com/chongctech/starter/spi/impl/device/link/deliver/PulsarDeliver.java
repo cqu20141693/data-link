@@ -8,11 +8,12 @@ import com.chongctech.device.link.spi.deliver.DeliverRawService;
 import com.chongctech.pulsar.core.domain.ProducerRecord;
 import com.chongctech.pulsar.core.producer.StringProducerTemplate;
 import com.chongctech.starter.config.PulsarOutTopicConfig;
-import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.MessageId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author gow
@@ -40,13 +41,12 @@ public class PulsarDeliver implements DeliverRawService {
     }
 
     @Override
-    public boolean deliverPublishMsg(PublishMessageModel publishMessageModel) {
+    public void deliverPublishMsg(PublishMessageModel publishMessageModel) {
         ProducerRecord<String> record =
                 new ProducerRecord<>(outTopicConfig.getPublishTopic(), publishMessageModel.getLinkTag(),
                         JSONObject.toJSONString(publishMessageModel));
         CompletableFuture<MessageId> future = stringProducerTemplate.sendAsync(record);
         handle("publishMessageModel", publishMessageModel, future);
-        return true;
     }
 
     @Override

@@ -18,7 +18,7 @@ public interface DeliverRawService {
      * @param publishMessageModel
      * @return
      */
-    boolean deliverPublishMsg(PublishMessageModel publishMessageModel);
+    void deliverPublishMsg(PublishMessageModel publishMessageModel);
 
     /**
      * 传递下行动作消息

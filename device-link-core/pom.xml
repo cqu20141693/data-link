@@ -33,7 +33,7 @@
     <dependency>
       <groupId>com.chongctech</groupId>
       <artifactId>device-common</artifactId>
-      <version>v1.0.3-release</version>
+      <version>v1.0.15-release</version>
     </dependency>
   </dependencies>
 </project>
