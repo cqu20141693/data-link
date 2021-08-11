@@ -2,6 +2,7 @@ package com.chongctech.starter.spi.impl.device.link;
 
 import com.chongctech.device.authenticate.client.DeviceAuthenticateClient;
 import com.chongctech.device.authenticate.domain.mqtt.MqttLoginAuthResponse;
+import com.chongctech.device.authenticate.req.MqttLoginAuthReq;
 import com.chongctech.device.common.util.device.LinkTagUtil;
 import com.chongctech.device.link.biz.model.authenticate.AuthenticateResponse;
 import com.chongctech.device.link.biz.model.authenticate.WelcomeInfoModel;
@@ -10,11 +11,10 @@ import com.chongctech.device.link.spi.authenticate.AuthenticateServiceFacade;
 import com.chongctech.service.common.call.result.CommonCodeType;
 import com.chongctech.service.common.call.result.CommonResult;
 import com.chongctech.service.common.call.result.ResultUtil;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 /**
  * @author gow
@@ -32,9 +32,16 @@ public class AuthenticateServiceFacadeImpl implements AuthenticateServiceFacade 
                                                            String sessionKey,
                                                            String nodeTag, Integer port, int keepAliveSeconds) {
         try {
+            MqttLoginAuthReq req = new MqttLoginAuthReq();
+            req.setClientIdentifier(clientIdentifier);
+            req.setUsername(username);
+            req.setPassword(password);
+            req.setSessionKey(sessionKey);
+            req.setNodeTag(nodeTag);
+            req.setPort(port);
+            req.setKeepAliveSeconds(keepAliveSeconds);
             CommonResult<MqttLoginAuthResponse> mqttLoginResult =
-                    deviceAuthenticateClient.mqttLogin(clientIdentifier, username, password, sessionKey, nodeTag, port,
-                            keepAliveSeconds);
+                    deviceAuthenticateClient.mqttLogin(req);
             if (!mqttLoginResult.success()) {
                 log.info("device login failed,code={} message={},identifier={},username={}", mqttLoginResult.getCode(),
                         mqttLoginResult.getMessage(), clientIdentifier, username);
