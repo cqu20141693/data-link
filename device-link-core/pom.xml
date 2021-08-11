@@ -24,7 +24,7 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
-      <version>4.1.36.Final</version>
+      <version>4.1.63.Final</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -33,7 +33,7 @@
     <dependency>
       <groupId>com.chongctech</groupId>
       <artifactId>device-common</artifactId>
-      <version>v1.0.15-release</version>
+      <version>v1.0.18-release</version>
     </dependency>
   </dependencies>
 </project>

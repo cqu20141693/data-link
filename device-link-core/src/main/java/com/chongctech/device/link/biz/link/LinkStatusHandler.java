@@ -3,6 +3,7 @@ package com.chongctech.device.link.biz.link;
 import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
 import com.chongctech.device.link.biz.model.link.ChannelInfo;
 import com.chongctech.device.link.biz.model.link.LinkInfo;
+import com.chongctech.device.link.biz.model.link.LinkSysCode;
 import io.netty.channel.Channel;
 
 public interface LinkStatusHandler {
@@ -19,19 +20,19 @@ public interface LinkStatusHandler {
      *
      * @param linkTag
      * @param sessionKey
-     * @param cause
+     * @param time
+     * @param reasonCode
      * @return
      */
-    boolean disconnectFromService(String linkTag, String sessionKey, long time, String cause);
+    boolean disconnectFromService(String linkTag, String sessionKey, long time, String reasonCode);
 
     /**
      * 由本地channel发起链路断开，channel强绑定，不用检测sessionKey等。
      *
      * @param channel
      * @param cause
-     * @return
      */
-    ChannelInfo disconnectFromLocal(Channel channel, String cause);
+    ChannelInfo disconnectFromLocal(Channel channel, LinkSysCode cause);
 
     /**
      * 断开所有连接
@@ -55,7 +56,8 @@ public interface LinkStatusHandler {
      * @param signatureTag
      * @return 是否成功
      */
-    boolean linkLocalRecord(String linkTag, String sessionKey, DeviceTypeEnum deviceType, LinkInfo linkInfo, String signatureTag);
+    boolean linkLocalRecord(String linkTag, String sessionKey, DeviceTypeEnum deviceType, LinkInfo linkInfo,
+                            String signatureTag);
 
     /**
      * 本地记录表检查，

@@ -25,7 +25,10 @@ public interface LinkService {
      * 断开链接，非本地则转发断链请求
      *
      * @param linkTag
-     * @return the boolean
+     * @param sessionKey
+     * @param time
+     * @param reasonCode
+     * @return
      */
-    boolean disconnectLink(String linkTag, String sessionKey, long time, String cause);
+    boolean disconnectLink(String linkTag, String sessionKey, long time, String reasonCode);
 }

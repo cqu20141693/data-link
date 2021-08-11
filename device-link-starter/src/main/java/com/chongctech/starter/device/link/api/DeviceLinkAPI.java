@@ -33,7 +33,8 @@ public class DeviceLinkAPI {
     @PostMapping("sendQos1Msg")
     Boolean sendQos1Msg(@RequestParam("linkTag") String linkTag, @RequestParam("bizId") String bizId,
                         @RequestParam("topic") String topic,
-                        @RequestParam("ackWaitTime") Long ackWaitTime, @RequestBody byte[] content) {
+                        @RequestParam(value = "ackWaitTime", defaultValue = "-1") Long ackWaitTime,
+                        @RequestBody byte[] content) {
         return linkService.sendQos1Msg(linkTag, bizId, topic, content, ackWaitTime);
     }
 
@@ -49,7 +50,7 @@ public class DeviceLinkAPI {
     boolean disconnectLinkBySession(@RequestParam("linkTag") String linkTag,
                                     @RequestParam("sessionKey") String sessionKey,
                                     @RequestParam("time") Long time,
-                                    @RequestParam("cause") String cause) {
-        return linkService.disconnectLink(linkTag, sessionKey, time, cause);
+                                    @RequestParam("reasonCode") String reasonCode) {
+        return linkService.disconnectLink(linkTag, sessionKey, time, reasonCode);
     }
 }

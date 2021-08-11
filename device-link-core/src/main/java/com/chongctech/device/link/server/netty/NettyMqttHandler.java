@@ -19,6 +19,7 @@ package com.chongctech.device.link.server.netty;
 
 import com.chongctech.device.link.biz.BrokerMetrics;
 import com.chongctech.device.link.biz.link.LinkStatusHandler;
+import com.chongctech.device.link.biz.model.link.LinkSysCode;
 import com.chongctech.device.link.biz.stream.down.DownStreamHandler;
 import com.chongctech.device.link.biz.stream.up.UpStreamHandler;
 import io.netty.channel.Channel;
@@ -60,7 +61,7 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
         try {
             if (!(message instanceof MqttMessage)) {
                 //非mqtt包
-                channelSmartClose(ctx, "rec not mqtt package");
+                channelSmartClose(ctx, LinkSysCode.PACKET_ERROR);
                 return;
             }
             MqttMessage msg = (MqttMessage) message;
@@ -68,7 +69,7 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
             if (decoderResult.isFailure()) {
                 //mqtt消息包解码错误
                 log.info("invalid mqtt package from channel {} , cause:{}", ctx.channel(), decoderResult.cause());
-                channelSmartClose(ctx, "invalid mqtt package");
+                channelSmartClose(ctx, LinkSysCode.PACKET_DECODE_ERROR);
             }
 
             MqttMessageType messageType = msg.fixedHeader().messageType();
@@ -76,7 +77,7 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
 
             if (messageType == MqttMessageType.CONNECT) {
                 if (NettyUtils.tryInitStatus(ctx.channel())) {
-                    channelSmartClose(ctx, "rec duplicate connect msg");
+                    channelSmartClose(ctx, LinkSysCode.DUPLICATE_CONN_PACKET);
                 } else {
                     upStreamHandler.handleConnect(ctx.channel(), (MqttConnectMessage) msg);
                 }
@@ -118,13 +119,14 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
                         upStreamHandler.handlePingReq(ctx.channel(), msg);
                         break;
                     default:
-                        channelSmartClose(ctx, "rec unknown type mqtt package , type is " + messageType);
+                        log.info("close channel for receiving unknown mqtt packet type={}", messageType);
+                        channelSmartClose(ctx, LinkSysCode.UNKNOWN_PACKET_TYPE);
                         break;
                 }
             }
         } catch (Throwable ex) {
             log.error("Exception was caught while processing MQTT message, " + ex.getCause(), ex);
-            channelSmartClose(ctx, "MQTT message error");
+            channelSmartClose(ctx, LinkSysCode.SERVER_PROCESS_ERROR);
         } finally {
             ReferenceCountUtil.release(message);
         }
@@ -137,13 +139,13 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        closeChannelIfValid(ctx, "client is inactive, connection lost.");
+        closeChannelIfValid(ctx, LinkSysCode.CONNECTION_LOST);
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         cause.printStackTrace();
-        channelSmartClose(ctx, "system exceptionCaught.");
+        channelSmartClose(ctx, LinkSysCode.SYS_EXCEPTION_ERROR);
     }
 
     @Override
@@ -154,10 +156,10 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
         super.channelWritabilityChanged(ctx);
     }
 
-    private void channelSmartClose(ChannelHandlerContext ctx, String cause) {
+    private void channelSmartClose(ChannelHandlerContext ctx, LinkSysCode cause) {
         if (!closeChannelIfValid(ctx, cause)) {
             //连接未完成，直接关闭链路,多余信息由连接处理线程清理; 已关闭链路则只调用
-            NettyUtils.asyncCloseChannel(downStreamHandler.sendError(ctx.channel(), cause));
+            NettyUtils.asyncCloseChannel(downStreamHandler.sendError(ctx.channel(), cause.getCode()));
 
         } else {
             // consider slb probe
@@ -165,7 +167,7 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
-    private boolean closeChannelIfValid(ChannelHandlerContext ctx, String cause) {
+    private boolean closeChannelIfValid(ChannelHandlerContext ctx, LinkSysCode cause) {
         if (NettyUtils.isValidStatus(ctx.channel())) {
             //有效链路，存在链路信息;
             Channel channel = ctx.channel();

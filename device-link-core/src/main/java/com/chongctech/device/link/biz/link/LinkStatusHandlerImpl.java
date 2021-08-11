@@ -7,6 +7,7 @@ import com.chongctech.device.link.biz.BrokerMetrics;
 import com.chongctech.device.link.biz.executor.BizProcessExecutors;
 import com.chongctech.device.link.biz.model.link.ChannelInfo;
 import com.chongctech.device.link.biz.model.link.LinkInfo;
+import com.chongctech.device.link.biz.model.link.LinkSysCode;
 import com.chongctech.device.link.biz.session.LinkSession;
 import com.chongctech.device.link.biz.stream.down.DownStreamHandler;
 import com.chongctech.device.link.server.netty.NettyUtils;
@@ -47,7 +48,7 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
     }
 
     @Override
-    public boolean disconnectFromService(String linkTag, String sessionKey, long time, String cause) {
+    public boolean disconnectFromService(String linkTag, String sessionKey, long time, String logCode) {
         LinkInfo linkInfo = linkSession.getLinkInfo(linkTag);
         if (linkInfo == null) {
             logger.warn("disconnectFromService is called, but linkInfo not exist ,linkTag={}.", linkTag);
@@ -69,11 +70,11 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
         //try remove linkInfo
         linkSession.removeLink(linkTag);
 
-        return doDisconnectLink(channel, linkTag, sessionKey, time, cause);
+        return doDisconnectLink(channel, linkTag, sessionKey, time, logCode);
     }
 
     @Override
-    public ChannelInfo disconnectFromLocal(Channel channel, String cause) {
+    public ChannelInfo disconnectFromLocal(Channel channel, LinkSysCode cause) {
         if (!NettyUtils.tryInvalidStatus(channel)) {
             //未设置成功，已是无效链路
             return null;
@@ -91,18 +92,18 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
             logger.warn("disconnectFromLocal is called, but linkInfo not exist ,linkTag={}.", linkTag);
             return null;
         }
-        if (!doDisconnectLink(channel, linkTag, sessionKey, System.currentTimeMillis(), cause)) {
+        if (!doDisconnectLink(channel, linkTag, sessionKey, System.currentTimeMillis(), cause.getCode())) {
             return null;
         }
 
         return new ChannelInfo().setLinkTag(linkTag).setSessionKey(sessionKey);
     }
 
-    private boolean doDisconnectLink(Channel channel, String linkTag, String sessionKey, Long time, String cause) {
+    private boolean doDisconnectLink(Channel channel, String linkTag, String sessionKey, Long time, String reasonCode) {
         try {
             DeviceTypeEnum deviceTypeEnum = NettyUtils.getDeviceType(channel);
-            logger.info("doDisconnectLink is called, linkTag={},sessionKey={},deviceTypeEnum={},cause={}.",
-                    linkTag, sessionKey, deviceTypeEnum, cause);
+            logger.info("doDisconnectLink is called, linkTag={},sessionKey={},deviceTypeEnum={},causeCode={}.",
+                    linkTag, sessionKey, deviceTypeEnum, reasonCode);
 
             channel.flush();
             brokerMetrics.decLinkCount(NettyUtils.getChannelAuth(channel));
@@ -117,12 +118,12 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
                     .setPort(nodeUtil.getPort())
                     .setSignatureTag(NettyUtils.getSignatureTag(channel))
                     .setDeviceType(deviceTypeEnum)
-                    .setReasonMsg(cause));
+                    .setReasonCode(reasonCode));
         } catch (Exception e) {
             logger.error("error occur when doDisconnectLink. {}, linkTag={}", e.getMessage(), linkTag);
             return false;
         } finally {
-            NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel, cause));
+            NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel, reasonCode));
         }
         logger.info("doDisconnectLink link linkTag:{} finished, deviceCount = {}, channel:{}",
                 linkTag, brokerMetrics.getLinkAllCount(), channel);
@@ -133,7 +134,7 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
     public void disconnectAllLink() {
         logger.info("disconnectAllClient is called");
         linkSession.executeForEachLink((linkInfo) ->
-                disconnectFromLocal(linkInfo.getChannel(), "server restart"));
+                disconnectFromLocal(linkInfo.getChannel(), LinkSysCode.SERVER_RESTART));
     }
 
     @Override
@@ -167,7 +168,7 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
         if (preLinkInfo != null) {
             //当前链路认证完成，发现本地仍存在链路信息，需下线老链路，当前链路登录失败
             logger.warn("do local record,but preLinkInfo is not null pre={},new={}", preLinkInfo, linkInfo);
-            disconnectFromLocal(preLinkInfo.getChannel(), "a new login for the same client");
+            disconnectFromLocal(preLinkInfo.getChannel(), LinkSysCode.NEW_CLIENT_ONLINE);
             return false;
         }
 
@@ -181,7 +182,7 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
                 .setNodeTag(nodeUtil.getNodeTag())
                 .setPort(nodeUtil.getPort())
                 .setSignatureTag(signatureTag)
-                .setReasonMsg("successfully connected."));
+                .setReasonCode(LinkSysCode.ONLINE.getCode()));
         return true;
     }
 
@@ -189,7 +190,7 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
     public ChannelInfo loginLocalCheck(String linkTag) {
         LinkInfo linkInfo = linkSession.getLinkInfo(linkTag);
         if (linkInfo != null) {
-            return disconnectFromLocal(linkInfo.getChannel(), "duplicate link found while device login.");
+            return disconnectFromLocal(linkInfo.getChannel(), LinkSysCode.NEW_CLIENT_ONLINE);
         }
         return null;
     }

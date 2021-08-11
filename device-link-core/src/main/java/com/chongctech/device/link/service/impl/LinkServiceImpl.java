@@ -24,7 +24,7 @@ public class LinkServiceImpl implements LinkService {
     /**
      * 判断链路是否存在
      *
-     * @param linkTag
+     * @param linkTag 链路标识
      * @return the boolean
      */
     @Override
@@ -58,9 +58,9 @@ public class LinkServiceImpl implements LinkService {
     }
 
     @Override
-    public boolean disconnectLink(String linkTag, String sessionKey, long time, String cause) {
+    public boolean disconnectLink(String linkTag, String sessionKey, long time, String reasonCode) {
         try {
-            return linkStatusHandler.disconnectFromService(linkTag, sessionKey, time, cause);
+            return linkStatusHandler.disconnectFromService(linkTag, sessionKey, time, reasonCode);
         } catch (Exception e) {
             logger.error("disconnectLink(...) error! linkTag={}, e={}", linkTag, e);
         }

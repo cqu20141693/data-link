@@ -1,9 +1,15 @@
 package com.chongctech.device.link.biz.stream.up;
 
+import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_ACCEPTED;
+import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_IDENTIFIER_REJECTED;
+import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED;
+import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE;
+import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION;
 import com.chongctech.device.common.model.device.base.CmdStatus;
 import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.ChangeTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.LinkChangeModel;
+import com.chongctech.device.link.biz.model.link.LinkSysCode;
 import com.chongctech.device.common.model.device.deliver.raw.PublishMessageModel;
 import com.chongctech.device.common.model.device.deliver.raw.SendActionModel;
 import com.chongctech.device.common.util.device.LinkTagUtil;
@@ -24,20 +30,29 @@ import com.chongctech.device.link.spi.authenticate.AuthenticateServiceFacade;
 import com.chongctech.device.link.spi.deliver.DeliverRawService;
 import com.chongctech.device.link.util.NodeUtil;
 import com.chongctech.service.common.call.result.CommonResult;
-import io.netty.channel.*;
-import io.netty.handler.codec.mqtt.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelPipeline;
+import io.netty.handler.codec.mqtt.MqttConnectMessage;
+import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
+import io.netty.handler.codec.mqtt.MqttMessage;
+import io.netty.handler.codec.mqtt.MqttPubAckMessage;
+import io.netty.handler.codec.mqtt.MqttPublishMessage;
+import io.netty.handler.codec.mqtt.MqttQoS;
+import io.netty.handler.codec.mqtt.MqttSubscribeMessage;
+import io.netty.handler.codec.mqtt.MqttUnsubscribeMessage;
+import io.netty.handler.codec.mqtt.MqttVersion;
 import io.netty.util.CharsetUtil;
+import java.util.Objects;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
-import java.util.Objects;
-import java.util.Optional;
-
-import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.*;
 
 @Component
 public class UpStreamHandlerImpl implements UpStreamHandler {
@@ -185,7 +200,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
                             if (elements == null) {
                                 logger.warn("unexpected situation happen,linkTag parse fail. linkTag={}", linkTag);
                                 // linkTag error
-                                linkStatusHandler.disconnectFromLocal(channel, "server error");
+                                linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.SERVER_ERROR);
                                 return;
                             }
                             Optional.ofNullable(response.getWelcomeInfoModel())
@@ -194,7 +209,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
                         } else {
                             logger.error("replyConnAck failed,channel={},linkTag={},time={}", channel, linkTag, now);
                             //未完成connAck，设备链路已断开，主动清理
-                            linkStatusHandler.disconnectFromLocal(channel, "conn ack send fail.");
+                            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.CONN_ACK_SEND_FAIL);
                         }
 
                     });
@@ -203,7 +218,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
                 }
             } else {
                 //未完成登录，设备链路已断开，主动清理
-                linkStatusHandler.disconnectFromLocal(channel, "channel is not active while connected.");
+                linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.INACTIVE_WHILE_CONNECTED);
             }
         });
         if (!result) {
@@ -227,26 +242,31 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         ChannelAuth channelAuth = NettyUtils.getChannelAuth(channel);
         if (channelAuth == ChannelAuth.ONLY_SUBSCRIBE) {
             logger.info("system will close channel {} ,for no mqtt publish authority!", channel);
-            linkStatusHandler.disconnectFromLocal(channel, "no mqtt publish authority");
+            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.PUB_NOT_AUTHORITY);
             return;
         }
 
         logger.debug("processPublish(...) linkTag={}", linkTag);
         if (Objects.isNull(msg)) {
-            logger.error("handlePublish: linkTag={}, channel {} ,mqtt publish message should not be null", linkTag, channel);
-            linkStatusHandler.disconnectFromLocal(channel, "mqtt publish message is null.");
+            logger.error("handlePublish: linkTag={}, channel {} ,mqtt publish message should not be null", linkTag,
+                    channel);
+            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.PUB_NULL_ERROR);
             return;
         }
 
         if (Objects.isNull(msg.variableHeader())) {
-            logger.error("handlePublish: linkTag={}, channel {} ,mqtt publish message header should not be null, msg={}", linkTag, channel, msg);
-            linkStatusHandler.disconnectFromLocal(channel, "mqtt publish message header should is null");
+            logger.error(
+                    "handlePublish: linkTag={}, channel {} ,mqtt publish message header should not be null, msg={}",
+                    linkTag, channel, msg);
+            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.PUB_HEADER_NULL_ERROR);
             return;
         }
 
         if (!StringUtils.hasText(msg.variableHeader().topicName())) {
-            logger.error("handlePublish: linkTag={}, channel {} ,mqtt publish message topic should not be empty, msg={}", linkTag, channel, msg);
-            linkStatusHandler.disconnectFromLocal(channel, "mqtt publish message topic should is empty");
+            logger.error(
+                    "handlePublish: linkTag={}, channel {} ,mqtt publish message topic should not be empty, msg={}",
+                    linkTag, channel, msg);
+            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.PUB_TOPIC_NULL_ERROR);
             return;
         }
 
@@ -254,7 +274,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         LinkInfo linkInfo = linkSession.getLinkInfo(linkTag);
         if (linkInfo == null) {
             logger.warn("handlePublish: linkTag={}, channel {} ,invalid link.", linkTag, channel);
-            linkStatusHandler.disconnectFromLocal(channel, "invalid link.");
+            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.INVALID_LINK);
             return;
         }
 
@@ -262,7 +282,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         if (qos == MqttQoS.EXACTLY_ONCE) {
             logger.info("link:{} will be disconnected, the mqtt server dons't support QoS 2, channel:{}", linkTag,
                     channel);
-            linkStatusHandler.disconnectFromLocal(channel, " QoS 2 not supported.");
+            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.QOS_2_NOT_SUPPORT);
             return;
         }
 
@@ -301,7 +321,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         ChannelAuth channelAuth = NettyUtils.getChannelAuth(channel);
         if (channelAuth == ChannelAuth.ONLY_SUBSCRIBE) {
             logger.info("system will close channel {} ,for no mqtt publish ack authority!", channel);
-            linkStatusHandler.disconnectFromLocal(channel, "no mqtt publish ack authority");
+            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.PUB_NOT_AUTHORITY);
             return;
         }
 
@@ -310,7 +330,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         LinkInfo linkInfo = linkSession.getLinkInfo(linkTag);
         if (linkInfo == null) {
             logger.warn("handlePubAck: linkTag={}, channel {} ,invalid link.", linkTag, channel);
-            linkStatusHandler.disconnectFromLocal(channel, "invalid link.");
+            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.INVALID_LINK);
             return;
         }
         int messageId = msg.variableHeader().messageId();
@@ -330,37 +350,37 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
     @Override
     public void handleUnsubscribe(Channel channel, MqttUnsubscribeMessage msg) {
         logger.info("handleSubscribe , dosn't suppurt unsubscribe,channel {}", channel);
-        linkStatusHandler.disconnectFromLocal(channel, "unsubscribe not supported.");
+        linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.SUB_NOT_SUPPORT);
     }
 
     @Override
     public void handleSubscribe(Channel channel, MqttSubscribeMessage msg) {
         logger.info("handleSubscribe , dosn't suppurt subscribe,channel {}", channel);
-        linkStatusHandler.disconnectFromLocal(channel, "subscribe not supported.");
+        linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.SUB_NOT_SUPPORT);
     }
 
     @Override
     public void handlePubRel(Channel channel, MqttMessage msg) {
         logger.info("handlePubRel , this broker dosn't suppurt QoS2,channel {}", channel);
-        linkStatusHandler.disconnectFromLocal(channel, "QoS2 not supported.");
+        linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.QOS_2_NOT_SUPPORT);
     }
 
     @Override
     public void handlePubRec(Channel channel, MqttMessage msg) {
         logger.info("handlePubRel this broker dosn't suppurt QoS2,channel {}", channel);
-        linkStatusHandler.disconnectFromLocal(channel, "QoS2 not supported.");
+        linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.QOS_2_NOT_SUPPORT);
     }
 
     @Override
     public void handlePubComp(Channel channel, MqttMessage msg) {
         logger.info("handlePubRel this broker dosn't suppurt QoS2,channel {}", channel);
-        linkStatusHandler.disconnectFromLocal(channel, "QoS2 not supported.");
+        linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.QOS_2_NOT_SUPPORT);
     }
 
     @Override
     public void handleDisconnect(Channel channel) {
         logger.info("handleDisconnect.channel {}", channel);
-        linkStatusHandler.disconnectFromLocal(channel, "client's disconnect msg received.");
+        linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.CLIENT_SEND_DISCONNECT);
     }
 
     @Override
@@ -378,6 +398,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
                         .setKeepAliveSeconds(NettyUtils.getKeepAliveSeconds(channel))
                         .setDeviceType(NettyUtils.getDeviceType(channel))
                         .setPort(nodeUtil.getPort())
+                        .setReasonCode(LinkSysCode.PING.getCode())
                         .setSignatureTag(NettyUtils.getSignatureTag(channel)));
 
                 downStreamHandler.replyPingResp(channel);
