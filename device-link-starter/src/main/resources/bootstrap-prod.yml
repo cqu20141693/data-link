@@ -2,12 +2,12 @@ spring:
   cloud:
     nacos:
       config:
-        server-addr: 172.30.203.22:8848
+        server-addr: 172.20.245.154:8848
         file-extension: yml
-        namespace: ca1d1ded-cb0b-460c-8efa-7e665c7a34e0
+        namespace: 7b377435-8298-41ba-bf94-d02780873289
       discovery:
-        server-addr: 172.30.203.22:8848
-        register-enabled: false
+        server-addr: 172.20.245.154:8848
+        register-enabled: true
 springfox:
   documentation:
     enabled: false
