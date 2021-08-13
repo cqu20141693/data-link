@@ -33,6 +33,7 @@ com:
             - name: persistent://cctech/devices/raw-link-event-topic
             - name: persistent://cctech/devices/raw-publish-topic
             - name: persistent://cctech/devices/raw-send-action-topic
+          batching-enabled: true
 pulsar:
   topic:
     out:
