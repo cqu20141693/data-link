@@ -49,7 +49,7 @@
     <dependency>
       <groupId>com.chongctech</groupId>
       <artifactId>service-pulsar-starter</artifactId>
-      <version>v1.0.1-release</version>
+      <version>v1.0.2-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.chongctech</groupId>
@@ -61,6 +61,16 @@
       <artifactId>device-auth-client</artifactId>
       <version>v1.0.1-release</version>
     </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <version>1.5.0</version>
+    </dependency>
+
   </dependencies>
   <build>
     <plugins>

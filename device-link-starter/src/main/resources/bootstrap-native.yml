@@ -40,5 +40,16 @@ pulsar:
       link-change-topic: persistent://cctech/devices/raw-link-event-topic
       publish-topic: persistent://cctech/devices/raw-publish-topic
       send-action-topic: persistent://cctech/devices/raw-send-action-topic
-
+logging:
+  level:
+    com:
+      chongctech: debug
+      alibaba: warn
+    org:
+      apache:
+        pulsar:
+          client:
+            impl: info
+    pulsar:
+      log: debug
 
