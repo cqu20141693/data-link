@@ -178,7 +178,7 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
                 }
 
                 if (this.allIdleTimeNanos > 0L) {
-                    log.debug("MqttIdleStateHandler initialize allIdleTimeNacos={}", allIdleTimeNanos);
+//                    log.debug("MqttIdleStateHandler initialize allIdleTimeNacos={}", allIdleTimeNanos);
                     this.allIdleTimeout = this.schedule(ctx, new AllIdleTimeoutTask(ctx), this.allIdleTimeNanos, TimeUnit.NANOSECONDS);
                 }
 

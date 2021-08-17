@@ -39,13 +39,19 @@ public class MqttProtocolConfiguration {
     private boolean enableWebSocket = false;
 
     /**
-     * the max client this link broker allow to connect. if the client count reach the maxClient, the link broker will refuse new client login
+     * the max client this link broker allow to connect. if the client count reach the maxClient, the link broker will
+     * refuse new client login
      */
     private int maxLink = 8000;
 
     /**
-     * the mininal seconds of the hearbeat, if the client heart beat is less than this value, the server will refuse the connection
+     * the mininal seconds of the hearbeat, if the client heart beat is less than this value, the server will refuse the
+     * connection
      * default value: 120
      */
     private int minHeartBeatSecond = 120;
+    /**
+     * mqtt 报文最大字节数
+     */
+    private int maxBytesInMessage = 8092;
 }

@@ -128,7 +128,7 @@ public class NettyAcceptor {
         initFactory(host, port, new AbstractPipelineInitializer() {
             @Override
             void init(ChannelPipeline pipeline) {
-                pipeline.addFirst("decoder", new MqttDecoder());
+                pipeline.addFirst("decoder", new MqttDecoder(config.getMaxBytesInMessage()));
                 pipeline.addAfter("decoder", "encoder", MqttEncoder.INSTANCE);
                 pipeline.addLast(IDLE_STAT_HANDLER, new MqttIdleStateHandler(0,
                         0, config.getMinHeartBeatSecond()));
@@ -151,7 +151,7 @@ public class NettyAcceptor {
                         new WebSocketServerProtocolHandler("/mqtt", MQTT_SUBPROTOCOL_CSV_LIST));
                 pipeline.addLast("ws2bytebufDecoder", new WebSocketFrameToByteBufDecoder());
                 pipeline.addLast("bytebuf2wsEncoder", new ByteBufToWebSocketFrameEncoder());
-                pipeline.addLast("decoder", new MqttDecoder());
+                pipeline.addLast("decoder", new MqttDecoder(config.getMaxBytesInMessage()));
                 pipeline.addLast("encoder", MqttEncoder.INSTANCE);
                 pipeline.addLast(IDLE_STAT_HANDLER, new MqttIdleStateHandler(0,
                         0, config.getMinHeartBeatSecond()));
