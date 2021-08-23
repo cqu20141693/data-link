@@ -126,7 +126,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         if (brokerMetrics.getLinkAllCount() >= mqttConfig.getMaxLink()) {
             logger.warn("processConnect. the connection count reach the max count!");
             connectFailClose(channel, "server connection count reach the maxsize",
-                    CONNECTION_REFUSED_IDENTIFIER_REJECTED);
+                    CONNECTION_REFUSED_SERVER_UNAVAILABLE);
             return;
         }
 

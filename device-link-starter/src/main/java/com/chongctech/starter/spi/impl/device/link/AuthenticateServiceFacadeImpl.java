@@ -45,6 +45,9 @@ public class AuthenticateServiceFacadeImpl implements AuthenticateServiceFacade 
             if (!mqttLoginResult.success()) {
                 log.info("device login failed,code={} message={},identifier={},username={}", mqttLoginResult.getCode(),
                         mqttLoginResult.getMessage(), clientIdentifier, username);
+                if (CommonCodeType.BIZ_ERROR.getCode().equals(mqttLoginResult.getCode())) {
+                    return ResultUtil.returnError(CommonCodeType.BIZ_ERROR.getCode(), "authenticate failed");
+                }
                 return ResultUtil.returnError(CommonCodeType.BIZ_ERROR.getCode(), mqttLoginResult.getMessage());
             }
             MqttLoginAuthResponse response = mqttLoginResult.getData();
