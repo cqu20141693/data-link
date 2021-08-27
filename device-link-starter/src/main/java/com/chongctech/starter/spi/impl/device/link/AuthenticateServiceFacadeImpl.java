@@ -1,6 +1,7 @@
 package com.chongctech.starter.spi.impl.device.link;
 
 import com.chongctech.device.authenticate.client.DeviceAuthenticateClient;
+import com.chongctech.device.authenticate.domain.mqtt.MqttChannelType;
 import com.chongctech.device.authenticate.domain.mqtt.MqttLoginAuthResponse;
 import com.chongctech.device.authenticate.req.MqttLoginAuthReq;
 import com.chongctech.device.common.util.device.LinkTagUtil;
@@ -52,22 +53,20 @@ public class AuthenticateServiceFacadeImpl implements AuthenticateServiceFacade 
             }
             MqttLoginAuthResponse response = mqttLoginResult.getData();
             ChannelAuth channelAuth;
-            switch (response.getLoginType()) {
-                case GROUP_LOGIN:
-                case DEVICE_LOGIN:
-                case GROUP_LOGIN_HmacSHA256:
-                case GROUP_LOGIN_HmacSM3:
-                case DEVICE_LOGIN_HmacSHA256:
-                case DEVICE_LOGIN_HmacSM3:
-                case GROUP_CRYPTO_LOGIN_HmacSHA256:
-                case GROUP_CRYPTO_LOGIN_HmacSM3:
-                case DEVICE_CRYPTO_LOGIN_HmacSHA256:
-                case DEVICE_CRYPTO_LOGIN_HmacSM3:
+            MqttChannelType loginType = response.getLoginType();
+            if (loginType == null) {
+                log.error("response login type error clientIdentifier={},username={}", clientIdentifier, username);
+                return ResultUtil.returnError(CommonCodeType.BIZ_ERROR.getCode(), "login type is invalid");
+            }
+            switch (loginType) {
+                case PUSH:
                     channelAuth = ChannelAuth.ONLY_PUSH;
                     break;
-                case MIRROR_LOGIN:
-                case APP_LOGIN:
+                case SUBSCRIBE:
                     channelAuth = ChannelAuth.ONLY_SUBSCRIBE;
+                    break;
+                case PUSH_AND_SUBSCRIBE:
+                    channelAuth = ChannelAuth.PUSH_AND_SUBSCRIBE;
                     break;
                 default:
                     log.error("response login type error clientIdentifier={},username={}", clientIdentifier, username);
