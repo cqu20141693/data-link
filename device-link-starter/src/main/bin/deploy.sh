@@ -14,7 +14,7 @@ if [ "$SPRING_PROFILE" == "dev" ]; then
   XSS="256k"
   MDMS="256m"
 elif [ "$SPRING_PROFILE" == "prod" ]; then
-  XMX="4g"
+  XMX="2g"
   XMS="1g"
   XSS="1024k"
   MDMS="1g"
