@@ -19,7 +19,7 @@
   <version>${revision}</version>
 
   <properties>
-    <revision>v1.1.0-release</revision>
+    <revision>v1.1.1-SNAPSHOT</revision>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
   </properties>

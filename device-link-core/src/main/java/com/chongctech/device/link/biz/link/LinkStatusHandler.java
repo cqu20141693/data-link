@@ -1,6 +1,7 @@
 package com.chongctech.device.link.biz.link;
 
 import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
+import com.chongctech.device.common.model.device.base.LinkDeviceType;
 import com.chongctech.device.link.biz.model.link.ChannelInfo;
 import com.chongctech.device.link.biz.model.link.LinkInfo;
 import com.chongctech.device.link.biz.model.link.LinkSysCode;
@@ -56,7 +57,7 @@ public interface LinkStatusHandler {
      * @param signatureTag
      * @return 是否成功
      */
-    boolean linkLocalRecord(String linkTag, String sessionKey, DeviceTypeEnum deviceType, LinkInfo linkInfo,
+    boolean linkLocalRecord(String linkTag, String sessionKey, LinkDeviceType deviceType, LinkInfo linkInfo,
                             String signatureTag);
 
     /**

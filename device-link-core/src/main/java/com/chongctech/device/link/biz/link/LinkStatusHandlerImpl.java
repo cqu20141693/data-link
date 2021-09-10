@@ -1,6 +1,7 @@
 package com.chongctech.device.link.biz.link;
 
 import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
+import com.chongctech.device.common.model.device.base.LinkDeviceType;
 import com.chongctech.device.common.model.device.deliver.raw.ChangeTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.LinkChangeModel;
 import com.chongctech.device.link.biz.BrokerMetrics;
@@ -101,9 +102,9 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
 
     private boolean doDisconnectLink(Channel channel, String linkTag, String sessionKey, Long time, String reasonCode) {
         try {
-            DeviceTypeEnum deviceTypeEnum = NettyUtils.getDeviceType(channel);
-            logger.info("doDisconnectLink is called, linkTag={},sessionKey={},deviceTypeEnum={},causeCode={}.",
-                    linkTag, sessionKey, deviceTypeEnum, reasonCode);
+            LinkDeviceType deviceType = NettyUtils.getDeviceType(channel);
+            logger.info("doDisconnectLink is called, linkTag={},sessionKey={},deviceType={},causeCode={}.",
+                    linkTag, sessionKey, deviceType, reasonCode);
 
             channel.flush();
             brokerMetrics.decLinkCount(NettyUtils.getChannelAuth(channel));
@@ -117,7 +118,7 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
                     .setSessionKey(sessionKey)
                     .setPort(nodeUtil.getPort())
                     .setSignatureTag(NettyUtils.getSignatureTag(channel))
-                    .setDeviceType(deviceTypeEnum)
+                    .setDeviceType(deviceType)
                     .setReasonCode(reasonCode));
         } catch (Exception e) {
             logger.error("error occur when doDisconnectLink. {}, linkTag={}", e.getMessage(), linkTag);
@@ -162,7 +163,7 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
 
 
     @Override
-    public boolean linkLocalRecord(String linkTag, String sessionKey, DeviceTypeEnum deviceType, LinkInfo linkInfo,
+    public boolean linkLocalRecord(String linkTag, String sessionKey, LinkDeviceType deviceType, LinkInfo linkInfo,
                                    String signatureTag) {
         LinkInfo preLinkInfo = linkSession.recordLink(linkTag, linkInfo);
         if (preLinkInfo != null) {

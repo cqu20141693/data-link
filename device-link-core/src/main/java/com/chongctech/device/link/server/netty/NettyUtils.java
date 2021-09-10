@@ -15,7 +15,7 @@
  */
 package com.chongctech.device.link.server.netty;
 
-import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
+import com.chongctech.device.common.model.device.base.LinkDeviceType;
 import com.chongctech.device.link.biz.model.link.ChannelAuth;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -43,7 +43,8 @@ public class NettyUtils {
     private static final AttributeKey<Integer> ATTR_KEY_ALIVE_SECONDS = AttributeKey.valueOf(ATTR_KEEP_ALIVE_SECONDS);
     private static final AttributeKey<String> ATTR_KEY_SIGNATURE_TAG = AttributeKey.valueOf(ATTR_SIGNATURE_TAG);
     private static final AttributeKey<ChannelAuth> ATTR_KEY_CHANNEL_AUTH = AttributeKey.valueOf(ATTR_MQTT_CHANNEL_AUTH);
-    private static final AttributeKey<DeviceTypeEnum> ATTR_KEY_DEVICE_TYPE = AttributeKey.valueOf(ATTR_MQTT_DEVICE_TYPE);
+    private static final AttributeKey<LinkDeviceType> ATTR_KEY_DEVICE_TYPE =
+            AttributeKey.valueOf(ATTR_MQTT_DEVICE_TYPE);
 
     private static final AttributeKey<Integer> ATTR_KEY_CHANNEL_STATUS = AttributeKey.valueOf(ATTR_MQTT_CHANNEL_STATUS);
 
@@ -55,11 +56,11 @@ public class NettyUtils {
         return channel.attr(ATTR_KEY_CHANNEL_AUTH).get();
     }
 
-    public static void recordDeviceType(Channel channel, DeviceTypeEnum deviceTypeEnum) {
+    public static void recordDeviceType(Channel channel, LinkDeviceType deviceTypeEnum) {
         channel.attr(ATTR_KEY_DEVICE_TYPE).set(deviceTypeEnum);
     }
 
-    public static DeviceTypeEnum getDeviceType(Channel channel) {
+    public static LinkDeviceType getDeviceType(Channel channel) {
         return channel.attr(ATTR_KEY_DEVICE_TYPE).get();
     }
 

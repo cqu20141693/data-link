@@ -7,6 +7,7 @@ import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUS
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION;
 import com.chongctech.device.common.model.device.base.CmdStatus;
 import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
+import com.chongctech.device.common.model.device.base.LinkDeviceType;
 import com.chongctech.device.common.model.device.deliver.raw.ChangeTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.LinkChangeModel;
 import com.chongctech.device.link.biz.model.link.LinkSysCode;
@@ -170,14 +171,14 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
             LinkInfo newLinkInfo = new LinkInfo(channel);
             //本地登录信息记录，看是否存在登录
             boolean recorded = linkStatusHandler.linkLocalRecord(response.getLinkTag(), sessionKey,
-                    response.getDeviceTypeEnum(), newLinkInfo, response.getSignatureTag());
+                    response.getDeviceType(), newLinkInfo, response.getSignatureTag());
             if (!recorded) {
                 connectFailClose(channel, "server unavailable", CONNECTION_REFUSED_SERVER_UNAVAILABLE);
                 return;
             }
             //链路参数绑定到channel
             NettyUtils.recordChannelAuth(channel, response.getChannelAuth());
-            NettyUtils.recordDeviceType(channel, response.getDeviceTypeEnum());
+            NettyUtils.recordDeviceType(channel, response.getDeviceType());
             NettyUtils.recordLinkTag(channel, response.getLinkTag());
             NettyUtils.recordSessionKey(channel, sessionKey);
             NettyUtils.recordKeepAliveSeconds(channel, keepAlive);
@@ -288,7 +289,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
 
         final byte[] payload = NettyUtils.readBytesAndRewind(msg.payload());
         final String topic = msg.variableHeader().topicName();
-        DeviceTypeEnum deviceTypeEnum = NettyUtils.getDeviceType(channel);
+        LinkDeviceType deviceType = NettyUtils.getDeviceType(channel);
 
         bizProcessExecutors.submitProcessTask(linkTag, () ->
                 deliverRawService.deliverPublishMsg(new PublishMessageModel()
@@ -296,7 +297,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
                         .setPayload(payload)
                         .setTopic(topic)
                         .setSessionKey(sessionKey)
-                        .setDeviceType(deviceTypeEnum)
+                        .setDeviceType(deviceType)
                         .setSignatureTag(NettyUtils.getSignatureTag(channel))
                         .setTimeStamp(System.currentTimeMillis())));
 

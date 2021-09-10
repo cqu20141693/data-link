@@ -80,7 +80,7 @@ public class AuthenticateServiceFacadeImpl implements AuthenticateServiceFacade 
                     .setLinkTag(LinkTagUtil.createLinkTag(response.getSn(), response.getGroupKey()))
                     .setSessionKey(sessionKey)
                     .setSignatureTag(response.getSignatureTag())
-                    .setDeviceTypeEnum(response.getDeviceTypeEnum())
+                    .setDeviceType(response.getDeviceType())
                     .setWelcomeInfoModel(welcomeInfoModel));
         } catch (Exception e) {
             log.error("", e);
