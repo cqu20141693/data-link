@@ -15,7 +15,7 @@ public class LinkInfo {
     /**
      * 下线qos=1消息List
      */
-    private ConcurrentLinkedQueue<SendInfo> sendInfoList = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<SendInfo> sendInfoList = new ConcurrentLinkedQueue<>();
 
     public LinkInfo(Channel channel) {
         this(channel, 0xffff);

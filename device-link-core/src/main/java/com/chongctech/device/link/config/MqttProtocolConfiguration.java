@@ -1,5 +1,7 @@
 package com.chongctech.device.link.config;
 
+import io.netty.util.NettyRuntime;
+import io.netty.util.internal.SystemPropertyUtil;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -26,7 +28,8 @@ public class MqttProtocolConfiguration {
     /**
      * the thread size used as worker,default value: 4
      */
-    private int workerGroupSize = 4;
+    private int workerGroupSize = Math.max(1, SystemPropertyUtil
+            .getInt("io.netty.eventLoopThreads", NettyRuntime.availableProcessors() * 2));
 
     /**
      * the thread size use as backend thread pool,default value: 4

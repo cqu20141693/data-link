@@ -36,15 +36,6 @@ public class SendInfo {
     private volatile int messageId = -1;
 
     public SendInfo(String linkTag, String bizId,
-                    String topic, byte[] payload, int qos) {
-        this.linkTag = linkTag;
-        this.bizId = bizId;
-        this.topic = topic;
-        this.payload = payload;
-        this.qos = qos;
-    }
-
-    public SendInfo(String linkTag, String bizId,
                     String topic, byte[] payload, int qos, long ackWaitTime) {
         this.linkTag = linkTag;
         this.bizId = bizId;

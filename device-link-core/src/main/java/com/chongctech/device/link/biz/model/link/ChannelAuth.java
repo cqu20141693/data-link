@@ -21,17 +21,13 @@ public enum ChannelAuth {
         }
     }
 
-    private String tag;
+    private final String tag;
 
-    private int code;
+    private final int code;
 
     ChannelAuth(String tag, int code) {
         this.tag = tag;
         this.code = code;
-    }
-
-    public static ChannelAuth parseFromCode(int code) {
-        return INNER.getOrDefault(code, UNKNOWN);
     }
 
     public String getTag() {

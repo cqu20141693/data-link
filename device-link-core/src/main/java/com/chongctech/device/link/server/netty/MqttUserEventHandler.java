@@ -30,8 +30,8 @@ import org.slf4j.LoggerFactory;
 class MqttUserEventHandler extends ChannelDuplexHandler {
     private static final Logger logger = LoggerFactory.getLogger(MqttUserEventHandler.class);
 
-    private DownStreamHandler downStreamHandler;
-    private LinkStatusHandler linkStatusHandler;
+    private final DownStreamHandler downStreamHandler;
+    private final LinkStatusHandler linkStatusHandler;
 
     public MqttUserEventHandler(DownStreamHandler downStreamHandler, LinkStatusHandler linkStatusHandler) {
         this.downStreamHandler = downStreamHandler;

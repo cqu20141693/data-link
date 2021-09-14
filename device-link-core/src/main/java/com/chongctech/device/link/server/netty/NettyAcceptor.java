@@ -1,5 +1,6 @@
 package com.chongctech.device.link.server.netty;
 
+import com.alibaba.fastjson.JSONObject;
 import com.chongctech.device.link.biz.link.LinkStatusHandler;
 import com.chongctech.device.link.biz.stream.down.DownStreamHandler;
 import com.chongctech.device.link.config.MqttProtocolConfiguration;
@@ -25,7 +26,6 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.codec.mqtt.MqttDecoder;
 import io.netty.handler.codec.mqtt.MqttEncoder;
 import io.netty.util.concurrent.Future;
-import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +37,6 @@ public class NettyAcceptor {
     private static final String MQTT_SUBPROTOCOL_CSV_LIST = "mqtt, mqttv3.1, mqttv3.1.1";
     private static final Logger logger = LoggerFactory.getLogger(NettyAcceptor.class);
 
-    /**
-     * 在TCP连接成功后，收到Connect消息之前的超时时间间隔，默认为20秒
-     */
-    private final static int MAX_CONNECT_TIMEOUT = 60;
     /**
      * netty acceptor中用于超时判断的计时器
      */
@@ -62,11 +58,11 @@ public class NettyAcceptor {
     /**
      * 下行操作类
      */
-    private DownStreamHandler downStreamHandler;
+    private final DownStreamHandler downStreamHandler;
     /**
      * 状态操作类
      */
-    private LinkStatusHandler linkStatusHandler;
+    private final LinkStatusHandler linkStatusHandler;
 
     @Autowired
     public NettyAcceptor(MqttProtocolConfiguration configuration
@@ -79,13 +75,14 @@ public class NettyAcceptor {
         this.linkStatusHandler = linkStatusHandler;
     }
 
-    public void initialize() throws IOException {
+    public void initialize() {
         bossGroup = new NioEventLoopGroup(config.getBossGroupSize());
         workerGroup = new NioEventLoopGroup(config.getWorkerGroupSize());
         initializePlainTCPTransport();
         if (config.isEnableWebSocket()) {
             initializeWebSocketTransport();
         }
+        logger.info("config={}", JSONObject.toJSONString(config));
     }
 
     private void initFactory(String host, int port, final AbstractPipelineInitializer pipeliner) {
@@ -122,7 +119,7 @@ public class NettyAcceptor {
         }
     }
 
-    private void initializePlainTCPTransport() throws IOException {
+    private void initializePlainTCPTransport() {
         String host = config.getHost();
         int port = config.getPort();
         initFactory(host, port, new AbstractPipelineInitializer() {
@@ -139,12 +136,12 @@ public class NettyAcceptor {
         logger.info("Started TCP on host: {}, port {}", host, port);
     }
 
-    private void initializeWebSocketTransport() throws IOException {
+    private void initializeWebSocketTransport() {
         String host = config.getHost();
         int port = config.getPort() + 1000;
         initFactory(host, port, new AbstractPipelineInitializer() {
             @Override
-            void init(ChannelPipeline pipeline) throws Exception {
+            void init(ChannelPipeline pipeline) {
                 pipeline.addLast(new HttpServerCodec());
                 pipeline.addLast("aggregator", new HttpObjectAggregator(65536));
                 pipeline.addLast("webSocketHandler",
@@ -169,8 +166,8 @@ public class NettyAcceptor {
         if (bossGroup == null) {
             throw new IllegalStateException("Invoked close on an Acceptor that wasn't initialized");
         }
-        Future workerWaiter = workerGroup.shutdownGracefully();
-        Future bossWaiter = bossGroup.shutdownGracefully();
+        Future<?> workerWaiter = workerGroup.shutdownGracefully();
+        Future<?> bossWaiter = bossGroup.shutdownGracefully();
 
         try {
             workerWaiter.await(1000);
@@ -188,8 +185,7 @@ public class NettyAcceptor {
     static class WebSocketFrameToByteBufDecoder extends MessageToMessageDecoder<BinaryWebSocketFrame> {
 
         @Override
-        protected void decode(ChannelHandlerContext chc, BinaryWebSocketFrame frame, List<Object> out)
-                throws Exception {
+        protected void decode(ChannelHandlerContext chc, BinaryWebSocketFrame frame, List<Object> out) {
             // convert the frame to a ByteBuf
             ByteBuf bb = frame.content();
             // System.out.println("WebSocketFrameToByteBufDecoder decode - " +
@@ -202,7 +198,7 @@ public class NettyAcceptor {
     static class ByteBufToWebSocketFrameEncoder extends MessageToMessageEncoder<ByteBuf> {
 
         @Override
-        protected void encode(ChannelHandlerContext chc, ByteBuf bb, List<Object> out) throws Exception {
+        protected void encode(ChannelHandlerContext chc, ByteBuf bb, List<Object> out) {
             // convert the ByteBuf to a WebSocketFrame
             BinaryWebSocketFrame result = new BinaryWebSocketFrame();
             // System.out.println("ByteBufToWebSocketFrameEncoder encode - " +
@@ -212,12 +208,11 @@ public class NettyAcceptor {
         }
     }
 
-    abstract class AbstractPipelineInitializer {
+    abstract static class AbstractPipelineInitializer {
         /**
          * netty pipeline 初始化
          *
          * @param pipeline 输入的pipeline对象
-         * @throws Exception
          */
         abstract void init(ChannelPipeline pipeline) throws Exception;
     }

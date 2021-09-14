@@ -1,15 +1,10 @@
 package com.chongctech.device.link.server.netty;
 
-/**
- * @author gow
- * @date 2021/6/18
- */
 
 import com.chongctech.device.link.server.netty.domain.ChannelAliveEvent;
 import io.netty.channel.Channel;
 import io.netty.channel.Channel.Unsafe;
 import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundBuffer;
@@ -21,6 +16,9 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * @author gow
+ */
 @Slf4j
 public class MqttIdleStateHandler extends ChannelDuplexHandler {
     private static final long MIN_TIMEOUT_NANOS;
@@ -45,19 +43,18 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
     private long lastFlushProgress;
 
     public MqttIdleStateHandler(int readerIdleTimeSeconds, int writerIdleTimeSeconds, int allIdleTimeSeconds) {
-        this((long) readerIdleTimeSeconds, (long) writerIdleTimeSeconds, (long) allIdleTimeSeconds, TimeUnit.SECONDS);
+        this(readerIdleTimeSeconds, writerIdleTimeSeconds, allIdleTimeSeconds, TimeUnit.SECONDS);
     }
 
     public MqttIdleStateHandler(long readerIdleTime, long writerIdleTime, long allIdleTime, TimeUnit unit) {
         this(false, readerIdleTime, writerIdleTime, allIdleTime, unit);
     }
 
-    public MqttIdleStateHandler(boolean observeOutput, long readerIdleTime, long writerIdleTime, long allIdleTime, TimeUnit unit) {
-        this.writeListener = new ChannelFutureListener() {
-            public void operationComplete(ChannelFuture future) throws Exception {
-                MqttIdleStateHandler.this.lastWriteTime = MqttIdleStateHandler.this.ticksInNanos();
-                MqttIdleStateHandler.this.firstWriterIdleEvent = MqttIdleStateHandler.this.firstAllIdleEvent = true;
-            }
+    public MqttIdleStateHandler(boolean observeOutput, long readerIdleTime, long writerIdleTime, long allIdleTime,
+                                TimeUnit unit) {
+        this.writeListener = future -> {
+            MqttIdleStateHandler.this.lastWriteTime = MqttIdleStateHandler.this.ticksInNanos();
+            MqttIdleStateHandler.this.firstWriterIdleEvent = MqttIdleStateHandler.this.firstAllIdleEvent = true;
         };
         this.firstReaderIdleEvent = true;
         this.firstWriterIdleEvent = true;
@@ -99,14 +96,14 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
         return TimeUnit.NANOSECONDS.toMillis(this.allIdleTimeNanos);
     }
 
-    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+    public void handlerAdded(ChannelHandlerContext ctx) {
         if (ctx.channel().isActive() && ctx.channel().isRegistered()) {
             this.initialize(ctx);
         }
 
     }
 
-    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+    public void handlerRemoved(ChannelHandlerContext ctx) {
         this.destroy();
     }
 
@@ -128,7 +125,7 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
         super.channelInactive(ctx);
     }
 
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof MqttMessage) {
             //mqtt包，才进行计时刷新
             if (this.readerIdleTimeNanos > 0L || this.allIdleTimeNanos > 0L) {
@@ -142,7 +139,7 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
         }
     }
 
-    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+    public void channelReadComplete(ChannelHandlerContext ctx) {
         if ((this.readerIdleTimeNanos > 0L || this.allIdleTimeNanos > 0L) && this.reading) {
             this.lastReadTime = this.ticksInNanos();
             this.reading = false;
@@ -151,7 +148,7 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
         ctx.fireChannelReadComplete();
     }
 
-    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
         if (this.writerIdleTimeNanos <= 0L && this.allIdleTimeNanos <= 0L) {
             ctx.write(msg, promise);
         } else {
@@ -170,16 +167,21 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
                 this.initOutputChanged(ctx);
                 this.lastReadTime = this.lastWriteTime = this.ticksInNanos();
                 if (this.readerIdleTimeNanos > 0L) {
-                    this.readerIdleTimeout = this.schedule(ctx, new ReaderIdleTimeoutTask(ctx), this.readerIdleTimeNanos, TimeUnit.NANOSECONDS);
+                    this.readerIdleTimeout =
+                            this.schedule(ctx, new ReaderIdleTimeoutTask(ctx), this.readerIdleTimeNanos,
+                                    TimeUnit.NANOSECONDS);
                 }
 
                 if (this.writerIdleTimeNanos > 0L) {
-                    this.writerIdleTimeout = this.schedule(ctx, new WriterIdleTimeoutTask(ctx), this.writerIdleTimeNanos, TimeUnit.NANOSECONDS);
+                    this.writerIdleTimeout =
+                            this.schedule(ctx, new WriterIdleTimeoutTask(ctx), this.writerIdleTimeNanos,
+                                    TimeUnit.NANOSECONDS);
                 }
 
                 if (this.allIdleTimeNanos > 0L) {
 //                    log.debug("MqttIdleStateHandler initialize allIdleTimeNacos={}", allIdleTimeNanos);
-                    this.allIdleTimeout = this.schedule(ctx, new AllIdleTimeoutTask(ctx), this.allIdleTimeNanos, TimeUnit.NANOSECONDS);
+                    this.allIdleTimeout = this.schedule(ctx, new AllIdleTimeoutTask(ctx), this.allIdleTimeNanos,
+                            TimeUnit.NANOSECONDS);
                 }
 
         }
@@ -215,14 +217,15 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
     /**
      * 发送刷新事件
      *
-     * @param ctx
+     * @param ctx channel上下文
      */
     protected void channelRefresh(ChannelHandlerContext ctx) {
-        ChannelAliveEvent evt = new ChannelAliveEvent().setChannelAliveCheckTime((int) (MqttIdleStateHandler.this.allIdleTimeNanos / 1000000000));
+        ChannelAliveEvent evt = new ChannelAliveEvent()
+                .setChannelAliveCheckTime((int) (MqttIdleStateHandler.this.allIdleTimeNanos / 1000000000));
         ctx.fireUserEventTriggered(evt);
     }
 
-    protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
+    protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
         ctx.fireUserEventTriggered(evt);
     }
 
@@ -279,9 +282,7 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
                 long flushProgress = buf.currentProgress();
                 if (flushProgress != this.lastFlushProgress) {
                     this.lastFlushProgress = flushProgress;
-                    if (!first) {
-                        return true;
-                    }
+                    return !first;
                 }
             }
         }
@@ -302,10 +303,12 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
             long nextDelay = MqttIdleStateHandler.this.allIdleTimeNanos;
 
             if (!MqttIdleStateHandler.this.reading) {
-                nextDelay -= MqttIdleStateHandler.this.ticksInNanos() - Math.max(MqttIdleStateHandler.this.lastReadTime, MqttIdleStateHandler.this.lastWriteTime);
+                nextDelay -= MqttIdleStateHandler.this.ticksInNanos() - Math
+                        .max(MqttIdleStateHandler.this.lastReadTime, MqttIdleStateHandler.this.lastWriteTime);
             }
             if (nextDelay <= 0L) {
-                MqttIdleStateHandler.this.allIdleTimeout = MqttIdleStateHandler.this.schedule(ctx, this, MqttIdleStateHandler.this.allIdleTimeNanos, TimeUnit.NANOSECONDS);
+                MqttIdleStateHandler.this.allIdleTimeout = MqttIdleStateHandler.this
+                        .schedule(ctx, this, MqttIdleStateHandler.this.allIdleTimeNanos, TimeUnit.NANOSECONDS);
                 boolean first = MqttIdleStateHandler.this.firstAllIdleEvent;
                 MqttIdleStateHandler.this.firstAllIdleEvent = false;
 
@@ -322,7 +325,8 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
             } else {
 
                 MqttIdleStateHandler.this.channelRefresh(ctx);
-                MqttIdleStateHandler.this.allIdleTimeout = MqttIdleStateHandler.this.schedule(ctx, this, nextDelay, TimeUnit.NANOSECONDS);
+                MqttIdleStateHandler.this.allIdleTimeout =
+                        MqttIdleStateHandler.this.schedule(ctx, this, nextDelay, TimeUnit.NANOSECONDS);
             }
 
         }
@@ -335,9 +339,11 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
 
         protected void run(ChannelHandlerContext ctx) {
             long lastWriteTime = MqttIdleStateHandler.this.lastWriteTime;
-            long nextDelay = MqttIdleStateHandler.this.writerIdleTimeNanos - (MqttIdleStateHandler.this.ticksInNanos() - lastWriteTime);
+            long nextDelay = MqttIdleStateHandler.this.writerIdleTimeNanos - (MqttIdleStateHandler.this.ticksInNanos()
+                    - lastWriteTime);
             if (nextDelay <= 0L) {
-                MqttIdleStateHandler.this.writerIdleTimeout = MqttIdleStateHandler.this.schedule(ctx, this, MqttIdleStateHandler.this.writerIdleTimeNanos, TimeUnit.NANOSECONDS);
+                MqttIdleStateHandler.this.writerIdleTimeout = MqttIdleStateHandler.this
+                        .schedule(ctx, this, MqttIdleStateHandler.this.writerIdleTimeNanos, TimeUnit.NANOSECONDS);
                 boolean first = MqttIdleStateHandler.this.firstWriterIdleEvent;
                 MqttIdleStateHandler.this.firstWriterIdleEvent = false;
 
@@ -352,7 +358,8 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
                     ctx.fireExceptionCaught(var8);
                 }
             } else {
-                MqttIdleStateHandler.this.writerIdleTimeout = MqttIdleStateHandler.this.schedule(ctx, this, nextDelay, TimeUnit.NANOSECONDS);
+                MqttIdleStateHandler.this.writerIdleTimeout =
+                        MqttIdleStateHandler.this.schedule(ctx, this, nextDelay, TimeUnit.NANOSECONDS);
             }
 
         }
@@ -370,7 +377,8 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
             }
 
             if (nextDelay <= 0L) {
-                MqttIdleStateHandler.this.readerIdleTimeout = MqttIdleStateHandler.this.schedule(ctx, this, MqttIdleStateHandler.this.readerIdleTimeNanos, TimeUnit.NANOSECONDS);
+                MqttIdleStateHandler.this.readerIdleTimeout = MqttIdleStateHandler.this
+                        .schedule(ctx, this, MqttIdleStateHandler.this.readerIdleTimeNanos, TimeUnit.NANOSECONDS);
                 boolean first = MqttIdleStateHandler.this.firstReaderIdleEvent;
                 MqttIdleStateHandler.this.firstReaderIdleEvent = false;
 
@@ -381,7 +389,8 @@ public class MqttIdleStateHandler extends ChannelDuplexHandler {
                     ctx.fireExceptionCaught(var6);
                 }
             } else {
-                MqttIdleStateHandler.this.readerIdleTimeout = MqttIdleStateHandler.this.schedule(ctx, this, nextDelay, TimeUnit.NANOSECONDS);
+                MqttIdleStateHandler.this.readerIdleTimeout =
+                        MqttIdleStateHandler.this.schedule(ctx, this, nextDelay, TimeUnit.NANOSECONDS);
             }
 
         }

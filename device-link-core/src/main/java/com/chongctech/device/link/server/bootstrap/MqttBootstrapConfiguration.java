@@ -11,7 +11,8 @@ import org.springframework.core.type.AnnotationMetadata;
  */
 public class MqttBootstrapConfiguration implements ImportBeanDefinitionRegistrar {
 
-    public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+    public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata,
+                                        BeanDefinitionRegistry registry) {
         if (!registry.containsBeanDefinition("com.chongctech.device.link.server.bootstrap.MqttServerBootstrap")) {
             registry.registerBeanDefinition("com.chongctech.device.link.server.bootstrap.MqttServerBootstrap",
                     new AnnotatedGenericBeanDefinition(MqttServerBootstrap.class));
