@@ -48,6 +48,12 @@ public class BrokerMetrics {
      */
     private final AtomicInteger qos1SendCount = new AtomicInteger();
 
+
+    /**
+     * 本计时周期内实时的connect req
+     */
+    private final AtomicInteger connEventCount = new AtomicInteger();
+
     /**
      * 本计时周期内实时的被关闭的无状态的channel数目
      */
@@ -66,12 +72,13 @@ public class BrokerMetrics {
             long dataCountLastPeriod = dataCount.getAndSet(0);
             long qos0SendCountLastPeriod = qos0SendCount.getAndSet(0);
             long qos1SendCountLastPeriod = qos1SendCount.getAndSet(0);
+            long connCountLastPeriod = connEventCount.getAndSet(0);
             int closedStatelessChannelCount = closedStatelessChannelStats.getAndSet(0);
             log.info("link all count: {}, link push count: {}, link subscribe count: {}," +
-                            " last period data count: {}, last period qos0 send count:{}, last period qos1 send "
-                            + "count:{},closed stateless channel count={}",
-                    linkAllCount.intValue(), linkPushCount.intValue(), linkSubscribeCount.intValue(),
-                    dataCountLastPeriod, qos0SendCountLastPeriod, qos1SendCountLastPeriod, closedStatelessChannelCount);
+                            " last period data count:{},qos0 send count:{},qos1 send count:{},connect event count:{},"
+                            + "closed stateless channel count={}", linkAllCount.intValue(), linkPushCount.intValue(),
+                    linkSubscribeCount.intValue(), dataCountLastPeriod, qos0SendCountLastPeriod,
+                    qos1SendCountLastPeriod, connCountLastPeriod, closedStatelessChannelCount);
             if (metricsConfig.isTraceLink()) {
                 linkSession.printTraceLink(metricsConfig.getTraceLinkList());
             }
@@ -117,6 +124,10 @@ public class BrokerMetrics {
 
     public void incQos1SendCount() {
         qos1SendCount.incrementAndGet();
+    }
+
+    public void incConnEventCount() {
+        connEventCount.incrementAndGet();
     }
 
     public void incQos0SendCount() {

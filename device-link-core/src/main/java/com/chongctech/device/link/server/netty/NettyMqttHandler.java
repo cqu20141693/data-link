@@ -18,6 +18,7 @@ package com.chongctech.device.link.server.netty;
 
 
 import com.chongctech.device.link.biz.BrokerMetrics;
+import com.chongctech.device.link.biz.executor.BizProcessExecutors;
 import com.chongctech.device.link.biz.link.LinkStatusHandler;
 import com.chongctech.device.link.biz.model.link.LinkSysCode;
 import com.chongctech.device.link.biz.stream.down.DownStreamHandler;
@@ -55,6 +56,9 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
 
     @Autowired
     private BrokerMetrics brokerMetrics;
+
+    @Autowired
+    private BizProcessExecutors bizProcessExecutors;
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object message) {
@@ -98,7 +102,8 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
                         upStreamHandler.handleUnsubscribe(ctx.channel(), (MqttUnsubscribeMessage) msg);
                         break;
                     case PUBLISH:
-                        upStreamHandler.handlePublish(ctx.channel(), (MqttPublishMessage) msg);
+                        bizProcessExecutors.submitProcessTask(NettyUtils.getLinkTag(ctx.channel()),
+                                () -> upStreamHandler.handlePublish(ctx.channel(), (MqttPublishMessage) msg));
                         break;
                     case PUBREC:
                         upStreamHandler.handlePubRec(ctx.channel(), msg);
@@ -113,10 +118,12 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
                         upStreamHandler.handleDisconnect(ctx.channel());
                         break;
                     case PUBACK:
-                        upStreamHandler.handlePubAck(ctx.channel(), (MqttPubAckMessage) msg);
+                        bizProcessExecutors.submitProcessTask(NettyUtils.getLinkTag(ctx.channel()),
+                                () -> upStreamHandler.handlePubAck(ctx.channel(), (MqttPubAckMessage) msg));
                         break;
                     case PINGREQ:
-                        upStreamHandler.handlePingReq(ctx.channel(), msg);
+                        bizProcessExecutors.submitProcessTask(NettyUtils.getLinkTag(ctx.channel()),
+                                () -> upStreamHandler.handlePingReq(ctx.channel(), msg));
                         break;
                     default:
                         log.info("close channel for receiving unknown mqtt packet type={}", messageType);

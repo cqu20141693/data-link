@@ -1,6 +1,7 @@
 package com.chongctech.device.link.server.netty;
 
 import com.alibaba.fastjson.JSONObject;
+import com.chongctech.device.link.biz.executor.BizProcessExecutors;
 import com.chongctech.device.link.biz.link.LinkStatusHandler;
 import com.chongctech.device.link.biz.stream.down.DownStreamHandler;
 import com.chongctech.device.link.config.MqttProtocolConfiguration;
@@ -64,15 +65,19 @@ public class NettyAcceptor {
      */
     private final LinkStatusHandler linkStatusHandler;
 
+    private BizProcessExecutors bizProcessExecutors;
+
     @Autowired
     public NettyAcceptor(MqttProtocolConfiguration configuration
             , NettyMqttHandler nettyMqttHandler
             , DownStreamHandler downStreamHandler
-            , LinkStatusHandler linkStatusHandler) {
+            , LinkStatusHandler linkStatusHandler
+            , BizProcessExecutors bizProcessExecutors) {
         this.config = configuration;
         this.handler = nettyMqttHandler;
         this.downStreamHandler = downStreamHandler;
         this.linkStatusHandler = linkStatusHandler;
+        this.bizProcessExecutors = bizProcessExecutors;
     }
 
     public void initialize() {
@@ -129,7 +134,8 @@ public class NettyAcceptor {
                 pipeline.addAfter("decoder", "encoder", MqttEncoder.INSTANCE);
                 pipeline.addLast(IDLE_STAT_HANDLER, new MqttIdleStateHandler(0,
                         0, config.getMinHeartBeatSecond()));
-                pipeline.addLast("idleEventHandler", new MqttUserEventHandler(downStreamHandler, linkStatusHandler));
+                pipeline.addLast("idleEventHandler",
+                        new MqttUserEventHandler(downStreamHandler, linkStatusHandler, bizProcessExecutors));
                 pipeline.addLast("handler", handler);
             }
         });
@@ -152,7 +158,8 @@ public class NettyAcceptor {
                 pipeline.addLast("encoder", MqttEncoder.INSTANCE);
                 pipeline.addLast(IDLE_STAT_HANDLER, new MqttIdleStateHandler(0,
                         0, config.getMinHeartBeatSecond()));
-                pipeline.addLast("idleEventHandler", new MqttUserEventHandler(downStreamHandler, linkStatusHandler));
+                pipeline.addLast("idleEventHandler",
+                        new MqttUserEventHandler(downStreamHandler, linkStatusHandler, bizProcessExecutors));
                 pipeline.addLast("handler", handler);
             }
         });

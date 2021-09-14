@@ -8,6 +8,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,20 +25,21 @@ public class BizProcessExecutors {
     /**
      * 进行后台处理的线程池
      */
-    private ExecutorService processService;
+    private final ExecutorService processService;
 
-    private Executor[] connExecutor;
+    private final Executor[] connExecutor;
 
-    private Executor[] processExecutor;
+    private final Executor[] processExecutor;
 
-    private Executor[] extendExecutor;
+    private final ExecutorConfig executorConfig;
 
-    private ExecutorConfig executorConfig;
+    private final AtomicInteger processCounter = new AtomicInteger(0);
 
     public BizProcessExecutors(ExecutorConfig executorConfig) {
         this.executorConfig = executorConfig;
 
-        ThreadFactory processThreadFactory = new ThreadFactoryBuilder().setNameFormat("process-%d").setDaemon(true).build();
+        ThreadFactory processThreadFactory =
+                new ThreadFactoryBuilder().setNameFormat("process-%d").setDaemon(true).build();
         processService = new ThreadPoolExecutor(executorConfig.getThreadPoolSize(), executorConfig.getThreadPoolSize(),
                 0, TimeUnit.SECONDS, new LinkedBlockingQueue<>(executorConfig.getThreadPoolQueueSize()),
                 processThreadFactory, new ThreadPoolExecutor.AbortPolicy());
@@ -54,15 +56,16 @@ public class BizProcessExecutors {
             processExecutor[i] = new SequenceExecutor(processService, executorConfig.getProcessExecutorQueueSize());
         }
 
-        int extendExecutorCount = executorConfig.getExtendExecutorCount();
-        extendExecutor = new Executor[extendExecutorCount];
-        for (int i = 0; i < extendExecutorCount; i++) {
-            extendExecutor[i] = new SequenceExecutor(processService, executorConfig.getExtendExecutorQueueSize());
-        }
     }
 
     public boolean submitProcessTask(String key, Runnable task) {
-        int index = Math.abs(key.hashCode()) % executorConfig.getProcessExecutorCount();
+        int index;
+        if (key == null) {
+            this.processCounter.compareAndSet(Integer.MAX_VALUE, 0);
+            index = processCounter.getAndIncrement() % executorConfig.getProcessExecutorCount();
+        } else {
+            index = Math.abs(key.hashCode()) % executorConfig.getProcessExecutorCount();
+        }
         try {
             processExecutor[index].execute(task);
             return true;
@@ -81,11 +84,6 @@ public class BizProcessExecutors {
             logger.info("the conn task execute fail , queue may full!");
             return false;
         }
-    }
-
-    public Executor getExecutorFromExtend(String key) {
-        int index = Math.abs(key.hashCode()) % executorConfig.getExtendExecutorCount();
-        return extendExecutor[index];
     }
 
     @PreDestroy

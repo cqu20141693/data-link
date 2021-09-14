@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "com.chongctech.device.link.executor")
 public class ExecutorConfig {
-    private int connExecutorCount = 16;
+    private int connExecutorCount = 8;
 
     private int connExecutorQueueSize = 25600;
 
@@ -16,11 +16,7 @@ public class ExecutorConfig {
 
     private int processExecutorQueueSize = 51200;
 
-    private int extendExecutorCount = 16;
-
-    private int extendExecutorQueueSize = 25600;
-
-    private int threadPoolSize = 64;
+    private int threadPoolSize = 40;
 
     private int threadPoolQueueSize = 1024;
 }

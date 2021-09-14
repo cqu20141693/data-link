@@ -1,11 +1,9 @@
 package com.chongctech.device.link.biz.link;
 
-import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
 import com.chongctech.device.common.model.device.base.LinkDeviceType;
 import com.chongctech.device.common.model.device.deliver.raw.ChangeTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.LinkChangeModel;
 import com.chongctech.device.link.biz.BrokerMetrics;
-import com.chongctech.device.link.biz.executor.BizProcessExecutors;
 import com.chongctech.device.link.biz.model.link.ChannelInfo;
 import com.chongctech.device.link.biz.model.link.LinkInfo;
 import com.chongctech.device.link.biz.model.link.LinkSysCode;
@@ -36,9 +34,6 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
 
     @Autowired
     private DownStreamHandler downStreamHandler;
-
-    @Autowired
-    private BizProcessExecutors bizProcessExecutors;
 
     @Autowired
     private NodeUtil nodeUtil;
@@ -142,17 +137,16 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
     public boolean reportLinkAlive(Channel channel, Integer keepAlive) {
         String linkTag = NettyUtils.getLinkTag(channel);
         if (!StringUtils.isBlank(linkTag)) {
-            bizProcessExecutors.submitConnTask(linkTag, () ->
-                    deliverRawService.deliverLinkChangeMsg(new LinkChangeModel()
-                            .setLinkTag(linkTag)
-                            .setNodeTag(nodeUtil.getNodeTag())
-                            .setPort(nodeUtil.getPort())
-                            .setDeviceType(NettyUtils.getDeviceType(channel))
-                            .setSignatureTag(NettyUtils.getSignatureTag(channel))
-                            .setKeepAliveSeconds(keepAlive)
-                            .setTimeStamp(System.currentTimeMillis())
-                            .setSessionKey(NettyUtils.getSessionKey(channel))
-                            .setChangeTypeEnum(ChangeTypeEnum.LINK_ALIVE)));
+            deliverRawService.deliverLinkChangeMsg(new LinkChangeModel()
+                    .setLinkTag(linkTag)
+                    .setNodeTag(nodeUtil.getNodeTag())
+                    .setPort(nodeUtil.getPort())
+                    .setDeviceType(NettyUtils.getDeviceType(channel))
+                    .setSignatureTag(NettyUtils.getSignatureTag(channel))
+                    .setKeepAliveSeconds(keepAlive)
+                    .setTimeStamp(System.currentTimeMillis())
+                    .setSessionKey(NettyUtils.getSessionKey(channel))
+                    .setChangeTypeEnum(ChangeTypeEnum.LINK_ALIVE));
         } else {
             NettyUtils
                     .asyncCloseChannel(downStreamHandler.sendError(channel, "linkTag is blank when trigger linkAlive"));

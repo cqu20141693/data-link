@@ -15,6 +15,7 @@
  */
 package com.chongctech.device.link.server.netty;
 
+import com.chongctech.device.link.biz.executor.BizProcessExecutors;
 import com.chongctech.device.link.biz.link.LinkStatusHandler;
 import com.chongctech.device.link.biz.stream.down.DownStreamHandler;
 import com.chongctech.device.link.server.netty.domain.ChannelAliveEvent;
@@ -32,30 +33,44 @@ class MqttUserEventHandler extends ChannelDuplexHandler {
 
     private final DownStreamHandler downStreamHandler;
     private final LinkStatusHandler linkStatusHandler;
+    private BizProcessExecutors bizProcessExecutors;
 
-    public MqttUserEventHandler(DownStreamHandler downStreamHandler, LinkStatusHandler linkStatusHandler) {
+    public MqttUserEventHandler(DownStreamHandler downStreamHandler, LinkStatusHandler linkStatusHandler,
+                                BizProcessExecutors bizProcessExecutors) {
         this.downStreamHandler = downStreamHandler;
         this.linkStatusHandler = linkStatusHandler;
+        this.bizProcessExecutors = bizProcessExecutors;
     }
 
     @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof IdleStateEvent) {
-            IdleState e = ((IdleStateEvent) evt).state();
-            if (e == IdleState.ALL_IDLE) {
-                //fire a channelInactive to trigger publish of Will
-                String linkTag = NettyUtils.getLinkTag(ctx.channel());
-                if (linkTag != null) {
-                    downStreamHandler.sendError(ctx.channel(), "heartbeat is lost!");
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
+
+        bizProcessExecutors.submitProcessTask(NettyUtils.getLinkTag(ctx.channel()), () -> {
+            if (evt instanceof IdleStateEvent) {
+                IdleState e = ((IdleStateEvent) evt).state();
+                if (e == IdleState.ALL_IDLE) {
+                    //fire a channelInactive to trigger publish of Will
+                    String linkTag = NettyUtils.getLinkTag(ctx.channel());
+                    if (linkTag != null) {
+                        downStreamHandler.sendError(ctx.channel(), "heartbeat is lost!");
+                    }
+                    logger.debug(
+                            "MqttIdleTimeoutHandler::userEventTriggered() is called, linkTag = {}, fireChannelInactive",
+                            linkTag);
+                    ctx.fireChannelInactive();
+                    ctx.close();
                 }
-                logger.debug("MqttIdleTimeoutHandler::userEventTriggered() is called, linkTag = {}, fireChannelInactive", linkTag);
-                ctx.fireChannelInactive();
-                ctx.close();
+            } else if (evt instanceof ChannelAliveEvent) {
+                this.linkStatusHandler
+                        .reportLinkAlive(ctx.channel(), ((ChannelAliveEvent) evt).getChannelAliveCheckTime());
+            } else {
+                try {
+                    super.userEventTriggered(ctx, evt);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-        } else if (evt instanceof ChannelAliveEvent) {
-            this.linkStatusHandler.reportLinkAlive(ctx.channel(), ((ChannelAliveEvent) evt).getChannelAliveCheckTime());
-        } else {
-            super.userEventTriggered(ctx, evt);
-        }
+        });
+
     }
 }

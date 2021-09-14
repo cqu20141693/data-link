@@ -6,11 +6,9 @@ import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUS
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE;
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION;
 import com.chongctech.device.common.model.device.base.CmdStatus;
-import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
 import com.chongctech.device.common.model.device.base.LinkDeviceType;
 import com.chongctech.device.common.model.device.deliver.raw.ChangeTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.LinkChangeModel;
-import com.chongctech.device.link.biz.model.link.LinkSysCode;
 import com.chongctech.device.common.model.device.deliver.raw.PublishMessageModel;
 import com.chongctech.device.common.model.device.deliver.raw.SendActionModel;
 import com.chongctech.device.common.util.device.LinkTagUtil;
@@ -20,6 +18,7 @@ import com.chongctech.device.link.biz.link.LinkStatusHandler;
 import com.chongctech.device.link.biz.model.authenticate.AuthenticateResponse;
 import com.chongctech.device.link.biz.model.link.ChannelAuth;
 import com.chongctech.device.link.biz.model.link.LinkInfo;
+import com.chongctech.device.link.biz.model.link.LinkSysCode;
 import com.chongctech.device.link.biz.model.link.SendInfo;
 import com.chongctech.device.link.biz.session.LinkSession;
 import com.chongctech.device.link.biz.session.Qos1Session;
@@ -140,6 +139,7 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         }
 
         final long connectTime = System.currentTimeMillis();
+        brokerMetrics.incConnEventCount();
         boolean result = bizProcessExecutors.submitConnTask(clientIdentifier, () -> {
             long now = System.currentTimeMillis();
             /*
@@ -291,15 +291,14 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         final String topic = msg.variableHeader().topicName();
         LinkDeviceType deviceType = NettyUtils.getDeviceType(channel);
 
-        bizProcessExecutors.submitProcessTask(linkTag, () ->
-                deliverRawService.deliverPublishMsg(new PublishMessageModel()
-                        .setLinkTag(linkTag)
-                        .setPayload(payload)
-                        .setTopic(topic)
-                        .setSessionKey(sessionKey)
-                        .setDeviceType(deviceType)
-                        .setSignatureTag(NettyUtils.getSignatureTag(channel))
-                        .setTimeStamp(System.currentTimeMillis())));
+        deliverRawService.deliverPublishMsg(new PublishMessageModel()
+                .setLinkTag(linkTag)
+                .setPayload(payload)
+                .setTopic(topic)
+                .setSessionKey(sessionKey)
+                .setDeviceType(deviceType)
+                .setSignatureTag(NettyUtils.getSignatureTag(channel))
+                .setTimeStamp(System.currentTimeMillis()));
 
         //qos1 默认返回
         if (qos == MqttQoS.AT_LEAST_ONCE) {
@@ -389,21 +388,19 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
         String linkTag = NettyUtils.getLinkTag(channel);
         String sessionKey = NettyUtils.getSessionKey(channel);
         if (StringUtils.hasText(linkTag)) {
-            bizProcessExecutors.submitProcessTask(linkTag, () -> {
-                deliverRawService.deliverLinkChangeMsg(new LinkChangeModel()
-                        .setLinkTag(linkTag)
-                        .setTimeStamp(System.currentTimeMillis())
-                        .setChangeTypeEnum(ChangeTypeEnum.LINK_HEART_BEAT)
-                        .setNodeTag(nodeUtil.getNodeTag())
-                        .setSessionKey(sessionKey)
-                        .setKeepAliveSeconds(NettyUtils.getKeepAliveSeconds(channel))
-                        .setDeviceType(NettyUtils.getDeviceType(channel))
-                        .setPort(nodeUtil.getPort())
-                        .setReasonCode(LinkSysCode.PING.getCode())
-                        .setSignatureTag(NettyUtils.getSignatureTag(channel)));
+            deliverRawService.deliverLinkChangeMsg(new LinkChangeModel()
+                    .setLinkTag(linkTag)
+                    .setTimeStamp(System.currentTimeMillis())
+                    .setChangeTypeEnum(ChangeTypeEnum.LINK_HEART_BEAT)
+                    .setNodeTag(nodeUtil.getNodeTag())
+                    .setSessionKey(sessionKey)
+                    .setKeepAliveSeconds(NettyUtils.getKeepAliveSeconds(channel))
+                    .setDeviceType(NettyUtils.getDeviceType(channel))
+                    .setPort(nodeUtil.getPort())
+                    .setReasonCode(LinkSysCode.PING.getCode())
+                    .setSignatureTag(NettyUtils.getSignatureTag(channel)));
 
-                downStreamHandler.replyPingResp(channel);
-            });
+            downStreamHandler.replyPingResp(channel);
         } else {
             NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel, "mqtt not login."));
         }
