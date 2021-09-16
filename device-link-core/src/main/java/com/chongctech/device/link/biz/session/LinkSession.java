@@ -41,8 +41,6 @@ public class LinkSession {
 
     /**
      * 检查是否存在链接
-     *
-     * @return
      */
     public boolean containLink(String linkTag) {
         if (StringUtils.isEmpty(linkTag)) {
@@ -52,8 +50,8 @@ public class LinkSession {
     }
 
     /**
-     * @param linkTag
-     * @param linkInfo
+     * @param linkTag  链路唯一标识
+     * @param linkInfo 链路信息
      * @return pre linkInfo
      */
     public LinkInfo recordLink(String linkTag, LinkInfo linkInfo) {
@@ -61,8 +59,7 @@ public class LinkSession {
     }
 
     /**
-     * @param linkTag
-     * @return
+     * @param linkTag 链路唯一标识
      */
     public LinkInfo removeLink(String linkTag) {
         if (!StringUtils.isEmpty(linkTag)) {
@@ -74,7 +71,7 @@ public class LinkSession {
     /**
      * 对所有链接执行指定动作
      *
-     * @param action
+     * @param action 执行动作
      */
     public void executeForEachLink(Consumer<LinkInfo> action) {
         //依次执行 避免并发。
@@ -89,18 +86,4 @@ public class LinkSession {
         }
     }
 
-    public SendInfo peekSendInfo(String linkTag) {
-        LinkInfo linkInfo = getLinkInfo(linkTag);
-        if (linkInfo != null) {
-            return linkInfo.getSendInfoList().peek();
-        }
-        return null;
-    }
-
-    public void addSendInfo(String linkTag, SendInfo sendInfo) {
-        LinkInfo linkInfo = getLinkInfo(linkTag);
-        if (linkInfo != null) {
-            linkInfo.getSendInfoList().add(sendInfo);
-        }
-    }
 }

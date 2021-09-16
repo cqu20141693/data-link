@@ -8,8 +8,8 @@ public enum SystemTopicEnum {
 
     ERROR("sys/error", "错误topic,下行");
 
-    private String name;
-    private String desc;
+    private final String name;
+    private final String desc;
 
     SystemTopicEnum(String name, String desc) {
         this.name = name;

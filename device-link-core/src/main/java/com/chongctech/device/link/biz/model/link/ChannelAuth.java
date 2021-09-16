@@ -11,16 +11,6 @@ public enum ChannelAuth {
     PUSH_AND_SUBSCRIBE("push_subscribe", 3),
 
     UNKNOWN("", -999);
-
-    private final static Map<Integer, ChannelAuth> INNER;
-
-    static {
-        INNER = new HashMap<>();
-        for (ChannelAuth channelAuth : ChannelAuth.values()) {
-            INNER.put(channelAuth.code, channelAuth);
-        }
-    }
-
     private final String tag;
 
     private final int code;

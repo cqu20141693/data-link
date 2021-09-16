@@ -29,7 +29,7 @@ public class SendInfo {
     /**
      * ack消息等待时间, 单位秒
      */
-    private long ackWaitTime = TimeUnit.SECONDS.toNanos(10);
+    private long ackWaitTime;
     /**
      * meg id
      */

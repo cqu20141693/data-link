@@ -46,6 +46,6 @@ public enum LinkSysCode {
         return zhDesc;
     }
 
-    private String code;
-    private String zhDesc;
+    private final String code;
+    private final String zhDesc;
 }

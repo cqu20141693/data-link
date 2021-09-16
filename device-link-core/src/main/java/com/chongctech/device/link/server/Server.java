@@ -41,7 +41,7 @@ public class Server {
         return started;
     }
 
-    public void startServer() throws IOException {
+    public void startServer() {
         acceptor.initialize();
         started = true;
     }

@@ -1,6 +1,5 @@
 package com.chongctech.device.link.biz.model.authenticate;
 
-import com.chongctech.device.common.model.device.base.DeviceTypeEnum;
 import com.chongctech.device.common.model.device.base.LinkDeviceType;
 import com.chongctech.device.link.biz.model.link.ChannelAuth;
 import lombok.Data;

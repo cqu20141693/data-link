@@ -12,11 +12,11 @@ public class ExecutorConfig {
 
     private int connExecutorQueueSize = 25600;
 
-    private int processExecutorCount = 32;
+    private int processExecutorCount = 24;
 
     private int processExecutorQueueSize = 51200;
 
-    private int threadPoolSize = 40;
+    private int threadPoolSize = 32;
 
     private int threadPoolQueueSize = 1024;
 }
