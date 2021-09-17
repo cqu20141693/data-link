@@ -102,8 +102,7 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
                         upStreamHandler.handleUnsubscribe(ctx.channel(), (MqttUnsubscribeMessage) msg);
                         break;
                     case PUBLISH:
-                        bizProcessExecutors.submitProcessTask(NettyUtils.getLinkTag(ctx.channel()),
-                                () -> upStreamHandler.handlePublish(ctx.channel(), (MqttPublishMessage) msg));
+                        upStreamHandler.handlePublish(ctx.channel(), (MqttPublishMessage) msg);
                         break;
                     case PUBREC:
                         upStreamHandler.handlePubRec(ctx.channel(), msg);
@@ -118,12 +117,10 @@ public class NettyMqttHandler extends ChannelInboundHandlerAdapter {
                         upStreamHandler.handleDisconnect(ctx.channel());
                         break;
                     case PUBACK:
-                        bizProcessExecutors.submitProcessTask(NettyUtils.getLinkTag(ctx.channel()),
-                                () -> upStreamHandler.handlePubAck(ctx.channel(), (MqttPubAckMessage) msg));
+                        upStreamHandler.handlePubAck(ctx.channel(), (MqttPubAckMessage) msg);
                         break;
                     case PINGREQ:
-                        bizProcessExecutors.submitProcessTask(NettyUtils.getLinkTag(ctx.channel()),
-                                () -> upStreamHandler.handlePingReq(ctx.channel(), msg));
+                        upStreamHandler.handlePingReq(ctx.channel(), msg);
                         break;
                     default:
                         log.info("close channel for receiving unknown mqtt packet type={}", messageType);

@@ -6,7 +6,6 @@ import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUS
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE;
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION;
 import com.chongctech.device.common.model.device.base.CmdStatus;
-import com.chongctech.device.common.model.device.base.LinkDeviceType;
 import com.chongctech.device.common.model.device.deliver.raw.ChangeTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.LinkChangeModel;
 import com.chongctech.device.common.model.device.deliver.raw.PublishMessageModel;
@@ -289,62 +288,69 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
 
         final byte[] payload = NettyUtils.readBytesAndRewind(msg.payload());
         final String topic = msg.variableHeader().topicName();
-        LinkDeviceType deviceType = NettyUtils.getDeviceType(channel);
+        bizProcessExecutors.submitProcessTask(linkTag,
+                () -> {
 
-        deliverRawService.deliverPublishMsg(new PublishMessageModel()
-                .setLinkTag(linkTag)
-                .setPayload(payload)
-                .setTopic(topic)
-                .setSessionKey(sessionKey)
-                .setDeviceType(deviceType)
-                .setSignatureTag(NettyUtils.getSignatureTag(channel))
-                .setTimeStamp(System.currentTimeMillis()));
+                    deliverRawService.deliverPublishMsg(new PublishMessageModel()
+                            .setLinkTag(linkTag)
+                            .setPayload(payload)
+                            .setTopic(topic)
+                            .setSessionKey(sessionKey)
+                            .setDeviceType(NettyUtils.getDeviceType(channel))
+                            .setSignatureTag(NettyUtils.getSignatureTag(channel))
+                            .setTimeStamp(System.currentTimeMillis()));
 
-        //qos1 默认返回
-        if (qos == MqttQoS.AT_LEAST_ONCE) {
-            //qos 1 ,返回ack
-            downStreamHandler.replyPubAck(channel, messageId);
-        }
+                    //qos1 默认返回
+                    if (qos == MqttQoS.AT_LEAST_ONCE) {
+                        //qos 1 ,返回ack
+                        downStreamHandler.replyPubAck(channel, messageId);
+                    }
 
-        brokerMetrics.incDataCount();
+                    brokerMetrics.incDataCount();
+                });
     }
 
     @Override
     public void handlePubAck(Channel channel, MqttPubAckMessage msg) {
-        String linkTag = NettyUtils.getLinkTag(channel);
-        String sessionKey = NettyUtils.getSessionKey(channel);
-        if (StringUtils.isEmpty(linkTag) || StringUtils.isEmpty(sessionKey)) {
-            logger.error("channel {} linkTag or sessionKey is Empty!", channel);
-            NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel, "linkTag or sessionKey is Empty"));
-            return;
-        }
-        ChannelAuth channelAuth = NettyUtils.getChannelAuth(channel);
-        if (channelAuth == ChannelAuth.ONLY_SUBSCRIBE) {
-            logger.info("system will close channel {} ,for no mqtt publish ack authority!", channel);
-            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.PUB_NOT_AUTHORITY);
-            return;
-        }
-
-        logger.debug("handlePubAck(...) linkTag={}", linkTag);
-
-        LinkInfo linkInfo = linkSession.getLinkInfo(linkTag);
-        if (linkInfo == null) {
-            logger.warn("handlePubAck: linkTag={}, channel {} ,invalid link.", linkTag, channel);
-            linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.INVALID_LINK);
-            return;
-        }
         int messageId = msg.variableHeader().messageId();
+        String linkTag = NettyUtils.getLinkTag(channel);
+        bizProcessExecutors.submitProcessTask(linkTag,
+                () -> {
+                    String sessionKey = NettyUtils.getSessionKey(channel);
+                    if (StringUtils.isEmpty(linkTag) || StringUtils.isEmpty(sessionKey)) {
+                        logger.error("channel {} linkTag or sessionKey is Empty!", channel);
+                        NettyUtils.asyncCloseChannel(
+                                downStreamHandler.sendError(channel, "linkTag or sessionKey is Empty"));
+                        return;
+                    }
+                    ChannelAuth channelAuth = NettyUtils.getChannelAuth(channel);
+                    if (channelAuth == ChannelAuth.ONLY_SUBSCRIBE) {
+                        logger.info("system will close channel {} ,for no mqtt publish ack authority!", channel);
+                        linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.PUB_NOT_AUTHORITY);
+                        return;
+                    }
 
-        SendInfo sendInfo = qos1Session.get(linkTag, messageId);
-        if (sendInfo != null) {
-            qos1Session.remove(linkTag, messageId);
-            SendActionModel sendActionModel = new SendActionModel();
-            sendActionModel.setLinkTag(sendInfo.getLinkTag());
-            sendActionModel.setBizId(sendInfo.getBizId());
-            sendActionModel.setTimeStamp(System.currentTimeMillis());
-            sendActionModel.setActionType(CmdStatus.ACK);
-            deliverRawService.deliverSendActionMsg(sendActionModel);
-        }
+                    logger.debug("handlePubAck(...) linkTag={}", linkTag);
+
+                    LinkInfo linkInfo = linkSession.getLinkInfo(linkTag);
+                    if (linkInfo == null) {
+                        logger.warn("handlePubAck: linkTag={}, channel {} ,invalid link.", linkTag, channel);
+                        linkStatusHandler.disconnectFromLocal(channel, LinkSysCode.INVALID_LINK);
+                        return;
+                    }
+
+
+                    SendInfo sendInfo = qos1Session.get(linkTag, messageId);
+                    if (sendInfo != null) {
+                        qos1Session.remove(linkTag, messageId);
+                        SendActionModel sendActionModel = new SendActionModel();
+                        sendActionModel.setLinkTag(sendInfo.getLinkTag());
+                        sendActionModel.setBizId(sendInfo.getBizId());
+                        sendActionModel.setTimeStamp(System.currentTimeMillis());
+                        sendActionModel.setActionType(CmdStatus.ACK);
+                        deliverRawService.deliverSendActionMsg(sendActionModel);
+                    }
+                });
     }
 
     @Override
@@ -385,25 +391,28 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
 
     @Override
     public void handlePingReq(Channel channel, MqttMessage msg) {
-        String linkTag = NettyUtils.getLinkTag(channel);
-        String sessionKey = NettyUtils.getSessionKey(channel);
-        if (StringUtils.hasText(linkTag)) {
-            deliverRawService.deliverLinkChangeMsg(new LinkChangeModel()
-                    .setLinkTag(linkTag)
-                    .setTimeStamp(System.currentTimeMillis())
-                    .setChangeTypeEnum(ChangeTypeEnum.LINK_HEART_BEAT)
-                    .setNodeTag(nodeUtil.getNodeTag())
-                    .setSessionKey(sessionKey)
-                    .setKeepAliveSeconds(NettyUtils.getKeepAliveSeconds(channel))
-                    .setDeviceType(NettyUtils.getDeviceType(channel))
-                    .setPort(nodeUtil.getPort())
-                    .setReasonCode(LinkSysCode.PING.getCode())
-                    .setSignatureTag(NettyUtils.getSignatureTag(channel)));
+        bizProcessExecutors.submitProcessTask(NettyUtils.getLinkTag(channel),
+                () -> {
+                    String linkTag = NettyUtils.getLinkTag(channel);
+                    String sessionKey = NettyUtils.getSessionKey(channel);
+                    if (StringUtils.hasText(linkTag)) {
+                        deliverRawService.deliverLinkChangeMsg(new LinkChangeModel()
+                                .setLinkTag(linkTag)
+                                .setTimeStamp(System.currentTimeMillis())
+                                .setChangeTypeEnum(ChangeTypeEnum.LINK_HEART_BEAT)
+                                .setNodeTag(nodeUtil.getNodeTag())
+                                .setSessionKey(sessionKey)
+                                .setKeepAliveSeconds(NettyUtils.getKeepAliveSeconds(channel))
+                                .setDeviceType(NettyUtils.getDeviceType(channel))
+                                .setPort(nodeUtil.getPort())
+                                .setReasonCode(LinkSysCode.PING.getCode())
+                                .setSignatureTag(NettyUtils.getSignatureTag(channel)));
 
-            downStreamHandler.replyPingResp(channel);
-        } else {
-            NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel, "mqtt not login."));
-        }
+                        downStreamHandler.replyPingResp(channel);
+                    } else {
+                        NettyUtils.asyncCloseChannel(downStreamHandler.sendError(channel, "mqtt not login."));
+                    }
+                });
     }
 
     private void setIdleTime(ChannelPipeline pipeline, int idleTime) {
