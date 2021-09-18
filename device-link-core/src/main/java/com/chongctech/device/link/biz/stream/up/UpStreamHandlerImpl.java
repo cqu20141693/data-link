@@ -5,6 +5,7 @@ import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUS
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_NOT_AUTHORIZED;
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_SERVER_UNAVAILABLE;
 import static io.netty.handler.codec.mqtt.MqttConnectReturnCode.CONNECTION_REFUSED_UNACCEPTABLE_PROTOCOL_VERSION;
+import com.alibaba.fastjson.JSONObject;
 import com.chongctech.device.common.model.device.base.CmdStatus;
 import com.chongctech.device.common.model.device.deliver.raw.ChangeTypeEnum;
 import com.chongctech.device.common.model.device.deliver.raw.LinkChangeModel;
@@ -55,7 +56,7 @@ import org.springframework.util.StringUtils;
 
 @Component
 public class UpStreamHandlerImpl implements UpStreamHandler {
-    private static final Logger logger = LoggerFactory.getLogger(UpStreamHandlerImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger("com.chongctech.link.upstream");
 
     private final static long MAX_CONNECT_WAIT_MS = 20000L;
 
@@ -330,7 +331,6 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
                         return;
                     }
 
-                    logger.debug("handlePubAck(...) linkTag={}", linkTag);
 
                     LinkInfo linkInfo = linkSession.getLinkInfo(linkTag);
                     if (linkInfo == null) {
@@ -339,8 +339,10 @@ public class UpStreamHandlerImpl implements UpStreamHandler {
                         return;
                     }
 
-
                     SendInfo sendInfo = qos1Session.get(linkTag, messageId);
+
+                    logger.debug("handlePubAck linkTag={},sendInfo={}", linkTag, JSONObject.toJSONString(sendInfo));
+
                     if (sendInfo != null) {
                         qos1Session.remove(linkTag, messageId);
                         SendActionModel sendActionModel = new SendActionModel();

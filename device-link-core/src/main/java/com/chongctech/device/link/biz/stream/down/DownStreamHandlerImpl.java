@@ -1,5 +1,6 @@
 package com.chongctech.device.link.biz.stream.down;
 
+import com.alibaba.fastjson.JSONObject;
 import com.chongctech.device.common.model.device.base.CmdStatus;
 import com.chongctech.device.common.model.device.deliver.raw.SendActionModel;
 import com.chongctech.device.link.biz.BrokerMetrics;
@@ -23,7 +24,7 @@ import org.springframework.util.StringUtils;
 
 @Component
 public class DownStreamHandlerImpl extends DownStreamBase implements DownStreamHandler {
-    private static final Logger logger = LoggerFactory.getLogger(DownStreamHandlerImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger("com.chongctech.link.downstream");
 
     @Autowired
     private BrokerMetrics brokerMetrics;
@@ -151,6 +152,7 @@ public class DownStreamHandlerImpl extends DownStreamBase implements DownStreamH
 
                 //下行推送后操作
                 if (channelFuture != null) {
+                    logger.debug("send Qos1 msg={} success", JSONObject.toJSONString(willSendInfo));
                     brokerMetrics.incQos1SendCount();
                     channelFuture.addListener((ChannelFutureListener) future -> {
                         SendActionModel sendActionModel = new SendActionModel();
