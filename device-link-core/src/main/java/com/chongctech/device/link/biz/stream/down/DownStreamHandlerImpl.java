@@ -24,7 +24,7 @@ import org.springframework.util.StringUtils;
 
 @Component
 public class DownStreamHandlerImpl extends DownStreamBase implements DownStreamHandler {
-    private static final Logger logger = LoggerFactory.getLogger("com.chongctech.link.downstream");
+    private static final Logger logger = LoggerFactory.getLogger("com.cctech.log.link.downstream");
 
     @Autowired
     private BrokerMetrics brokerMetrics;
@@ -177,6 +177,7 @@ public class DownStreamHandlerImpl extends DownStreamBase implements DownStreamH
     @Override
     public void flushChannelWrite(Channel channel) {
         if (channel.isWritable()) {
+            logger.info("channel={} is writable", channel);
             String linkTag = NettyUtils.getLinkTag(channel);
             if (linkTag == null) {
                 return;

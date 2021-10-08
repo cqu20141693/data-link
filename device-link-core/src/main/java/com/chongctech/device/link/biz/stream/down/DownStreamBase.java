@@ -28,23 +28,31 @@ import org.springframework.util.StringUtils;
  * 下行操作基础类
  */
 public class DownStreamBase {
-    private static final Logger logger = LoggerFactory.getLogger(DownStreamBase.class);
+    private static final Logger logger = LoggerFactory.getLogger("com.cctech.log.link.downstream");
 
-    protected ChannelFuture mqttPush(Channel channel, String topic, byte[] payload, int qos, int packetId, BooleanSupplier actionBeforePush) {
-        if (channel != null && channel.isWritable() && StringUtils.hasText(topic)) {
-            try {
-                MqttQoS mqttQoS = MqttQoS.valueOf(qos);
-                MqttFixedHeader fixedHeader = new MqttFixedHeader(MqttMessageType.PUBLISH, false, mqttQoS, false, 0);
-                MqttPublishVariableHeader varHeader = new MqttPublishVariableHeader(topic, packetId);
-                ByteBuf byteBuf = Unpooled.wrappedBuffer(payload);
-                MqttPublishMessage publishMessage = new MqttPublishMessage(fixedHeader, varHeader, byteBuf);
-                if (actionBeforePush != null && !actionBeforePush.getAsBoolean()) {
-                    //存在推送前的操作定义，且操作不成功
-                    return null;
+    protected ChannelFuture mqttPush(Channel channel, String topic, byte[] payload, int qos, int packetId,
+                                     BooleanSupplier actionBeforePush) {
+
+        if (channel != null) {
+            boolean writable = channel.isWritable();
+            logger.debug("mqtt push  channel={} topic={} payload={},writable={}", channel, topic, new String(payload),
+                    writable);
+            if (writable && StringUtils.hasText(topic)) {
+                try {
+                    MqttQoS mqttQoS = MqttQoS.valueOf(qos);
+                    MqttFixedHeader fixedHeader =
+                            new MqttFixedHeader(MqttMessageType.PUBLISH, false, mqttQoS, false, 0);
+                    MqttPublishVariableHeader varHeader = new MqttPublishVariableHeader(topic, packetId);
+                    ByteBuf byteBuf = Unpooled.wrappedBuffer(payload);
+                    MqttPublishMessage publishMessage = new MqttPublishMessage(fixedHeader, varHeader, byteBuf);
+                    if (actionBeforePush != null && !actionBeforePush.getAsBoolean()) {
+                        //存在推送前的操作定义，且操作不成功
+                        return null;
+                    }
+                    return channel.writeAndFlush(publishMessage);
+                } catch (Exception e) {
+                    logger.error("mqtt push failed. topic={}", topic);
                 }
-                return channel.writeAndFlush(publishMessage);
-            } catch (Exception e) {
-                logger.error("mqtt push failed. topic={}", topic);
             }
         }
         return null;
@@ -52,14 +60,18 @@ public class DownStreamBase {
 
     ChannelFuture mqttPushAck(Channel channel, int messageId) {
         try {
-            if (channel != null && channel.isWritable()) {
-                MqttFixedHeader mqttFixedHeader = new MqttFixedHeader(MqttMessageType.PUBACK, false, AT_MOST_ONCE,
-                        false, 0);
-                MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(messageId);
-                MqttPubAckMessage pubAckMessage = new MqttPubAckMessage(mqttFixedHeader, variableHeader);
-                return channel.writeAndFlush(pubAckMessage);
-            } else {
-                logger.error("send pub ack failed. because the write buf is full. messageId = {}", messageId);
+            if (channel != null) {
+                boolean writable = channel.isWritable();
+                logger.debug("mqtt pub ack  channel={},writable={}", channel, writable);
+                if (writable) {
+                    MqttFixedHeader mqttFixedHeader = new MqttFixedHeader(MqttMessageType.PUBACK, false, AT_MOST_ONCE,
+                            false, 0);
+                    MqttMessageIdVariableHeader variableHeader = MqttMessageIdVariableHeader.from(messageId);
+                    MqttPubAckMessage pubAckMessage = new MqttPubAckMessage(mqttFixedHeader, variableHeader);
+                    return channel.writeAndFlush(pubAckMessage);
+                } else {
+                    logger.error("send pub ack failed. because the write buf is full. messageId = {}", messageId);
+                }
             }
         } catch (Exception e) {
             logger.error("mqtt push ack failed. messageId={}", messageId);
@@ -69,11 +81,14 @@ public class DownStreamBase {
 
     ChannelFuture mqttConnAck(Channel channel, MqttConnectReturnCode returnCode) {
         try {
-            if (channel != null && channel.isWritable()) {
+            boolean writable = channel.isWritable();
+            logger.debug("mqtt conn ack  channel={} code={},writable={}", channel, returnCode, writable);
+            if (channel != null && writable) {
                 MqttFixedHeader mqttFixedHeader = new MqttFixedHeader(MqttMessageType.CONNACK, false, AT_MOST_ONCE,
                         false, 0);
                 MqttConnAckVariableHeader mqttConnAckVariableHeader = new MqttConnAckVariableHeader(returnCode, false);
-                MqttConnAckMessage mqttConnAckMessage = new MqttConnAckMessage(mqttFixedHeader, mqttConnAckVariableHeader);
+                MqttConnAckMessage mqttConnAckMessage =
+                        new MqttConnAckMessage(mqttFixedHeader, mqttConnAckVariableHeader);
                 return channel.writeAndFlush(mqttConnAckMessage);
             } else {
                 logger.error("send conn ack failed. returnCode = {}", returnCode);
@@ -121,13 +136,17 @@ public class DownStreamBase {
 
     ChannelFuture mqttPingResp(Channel channel) {
         try {
-            if (channel != null && channel.isWritable()) {
-                MqttFixedHeader pingHeader = new MqttFixedHeader(MqttMessageType.PINGRESP, false, AT_MOST_ONCE,
-                        false, 0);
-                MqttMessage pingResp = new MqttMessage(pingHeader);
-                return channel.writeAndFlush(pingResp);
-            } else {
-                logger.error("send ping resp failed.");
+            if (channel != null) {
+                boolean writable = channel.isWritable();
+                logger.debug("mqtt ping resp  channel={},writable={}", channel, writable);
+                if (writable) {
+                    MqttFixedHeader pingHeader = new MqttFixedHeader(MqttMessageType.PINGRESP, false, AT_MOST_ONCE,
+                            false, 0);
+                    MqttMessage pingResp = new MqttMessage(pingHeader);
+                    return channel.writeAndFlush(pingResp);
+                } else {
+                    logger.error("send ping resp failed.");
+                }
             }
         } catch (Exception e) {
             logger.error("mqtt ping resp failed.");

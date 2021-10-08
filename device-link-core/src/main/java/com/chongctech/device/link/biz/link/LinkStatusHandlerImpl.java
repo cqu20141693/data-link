@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LinkStatusHandlerImpl implements LinkStatusHandler {
-    private static final Logger logger = LoggerFactory.getLogger(LinkStatusHandlerImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger("com.cctech.log.link.status");
 
     @Autowired
     private LinkSession linkSession;

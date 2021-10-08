@@ -56,7 +56,7 @@ import org.springframework.util.StringUtils;
 
 @Component
 public class UpStreamHandlerImpl implements UpStreamHandler {
-    private static final Logger logger = LoggerFactory.getLogger("com.chongctech.link.upstream");
+    private static final Logger logger = LoggerFactory.getLogger("com.cctech.log.link.upstream");
 
     private final static long MAX_CONNECT_WAIT_MS = 20000L;
 
