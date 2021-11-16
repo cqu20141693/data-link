@@ -39,7 +39,7 @@ pulsar:
     out:
       link-change-topic: persistent://cctech/devices/raw-link-event-topic
       publish-topic: persistent://cctech/devices/raw-publish-topic
-      send-action-topic: persistent://cctech/devices/raw-send-action-topic
+      send-action-topic: persistent://cctech/devices/cmd-cycle-topic
 logging:
   level:
     com:
