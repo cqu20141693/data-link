@@ -5,12 +5,3 @@ spring:
     active: native
   main:
     allow-bean-definition-overriding: true
-management:
-  endpoints:
-    web:
-      exposure:
-        include: 'info,health,prometheus'
-        exclude: "shutdown"
-  metrics:
-    tags:
-      application: ${spring.application.name}

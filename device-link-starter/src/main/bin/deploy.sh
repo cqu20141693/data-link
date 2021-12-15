@@ -51,4 +51,21 @@ else
   kill $WATCH_DOG > /dev/null 2>&1
   start
 fi
-echo "===end deploy==="
+echo "===start to check health==="
+i=1
+while [ ${i} -le 10 ]; do
+  sleep 3
+  value=$(curl localhost:9003/actuator/health)
+  if [ "$value" == '{"status":"UP"}' ]; then
+    break;
+  fi
+  i=$(expr ${i} + 1)
+done
+
+if [ ${i} -le 10 ]; then
+  # 预留时间
+  sleep 2
+  exit 0;
+else
+  exit 1;
+fi
