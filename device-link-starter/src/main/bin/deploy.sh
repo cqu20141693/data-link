@@ -55,7 +55,7 @@ echo "===start to check health==="
 i=1
 while [ ${i} -le 10 ]; do
   sleep 3
-  value=$(curl localhost:9003/actuator/health)
+  value=$(curl localhost:9093/actuator/health)
   if [ "$value" == '{"status":"UP"}' ]; then
     break;
   fi
