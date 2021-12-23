@@ -73,6 +73,8 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
     public ChannelInfo disconnectFromLocal(Channel channel, LinkSysCode cause) {
         if (!NettyUtils.tryInvalidStatus(channel)) {
             //未设置成功，已是无效链路
+            logger.info("tryInvalidStatus failed");
+            channel.close();
             return null;
         }
 
@@ -81,6 +83,7 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
         if (StringUtils.isEmpty(linkTag) || StringUtils.isEmpty(sessionKey)) {
             //此时的channel还未进行mqtt初始化
             logger.info("no related mqtt link and should be close , channel is not mqtt login. channel = {}.", channel);
+            channel.close();
             return null;
         }
         LinkInfo linkInfo = linkSession.removeLink(linkTag);
@@ -164,6 +167,8 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
             //当前链路认证完成，发现本地仍存在链路信息，需下线老链路，当前链路登录失败
             logger.warn("do local record,but preLinkInfo is not null pre={},new={}", preLinkInfo, linkInfo);
             disconnectFromLocal(preLinkInfo.getChannel(), LinkSysCode.NEW_CLIENT_ONLINE);
+            // 做一次补偿
+            linkSession.removeLink(linkTag);
             return false;
         }
 
