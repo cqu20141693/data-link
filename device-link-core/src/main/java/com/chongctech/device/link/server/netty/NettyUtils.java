@@ -110,6 +110,10 @@ public class NettyUtils {
                 .compareAndSet(ChannelStatusEnum.VALID.getCode(), ChannelStatusEnum.INVALID.getCode());
     }
 
+    public static Integer getStatus(Channel channel) {
+        return channel.attr(ATTR_KEY_CHANNEL_STATUS).get();
+    }
+
     public static boolean isValidStatus(Channel channel) {
         return ChannelStatusEnum.VALID.getCode().equals(channel.attr(ATTR_KEY_CHANNEL_STATUS).get());
     }

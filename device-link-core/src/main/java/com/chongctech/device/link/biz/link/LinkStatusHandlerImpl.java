@@ -71,15 +71,17 @@ public class LinkStatusHandlerImpl implements LinkStatusHandler {
 
     @Override
     public ChannelInfo disconnectFromLocal(Channel channel, LinkSysCode cause) {
+
+        String linkTag = NettyUtils.getLinkTag(channel);
+        String sessionKey = NettyUtils.getSessionKey(channel);
         if (!NettyUtils.tryInvalidStatus(channel)) {
             //未设置成功，已是无效链路
-            logger.info("tryInvalidStatus failed");
+            Integer status = NettyUtils.getStatus(channel);
+            logger.info("tryInvalidStatus failed,status={},linkTag={},session={}", status, linkTag, sessionKey);
             channel.close();
             return null;
         }
 
-        String linkTag = NettyUtils.getLinkTag(channel);
-        String sessionKey = NettyUtils.getSessionKey(channel);
         if (StringUtils.isEmpty(linkTag) || StringUtils.isEmpty(sessionKey)) {
             //此时的channel还未进行mqtt初始化
             logger.info("no related mqtt link and should be close , channel is not mqtt login. channel = {}.", channel);
