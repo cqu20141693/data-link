@@ -1,9 +1,9 @@
 package com.chongctech.starter.spi.impl.device.link;
 
-import com.chongctech.device.authenticate.client.DeviceAuthenticateClient;
-import com.chongctech.device.authenticate.domain.mqtt.MqttChannelType;
-import com.chongctech.device.authenticate.domain.mqtt.MqttLoginAuthResponse;
-import com.chongctech.device.authenticate.req.MqttLoginAuthReq;
+import com.chongctech.device.backend.client.deviceauthenticate.client.DeviceAuthenticateClient;
+import com.chongctech.device.backend.model.authenticate.domain.mqtt.MqttChannelType;
+import com.chongctech.device.backend.model.authenticate.domain.mqtt.MqttLoginAuthResponse;
+import com.chongctech.device.backend.model.authenticate.req.MqttLoginAuthReq;
 import com.chongctech.device.common.util.device.LinkTagUtil;
 import com.chongctech.device.link.biz.model.authenticate.AuthenticateResponse;
 import com.chongctech.device.link.biz.model.authenticate.WelcomeInfoModel;
