@@ -59,7 +59,7 @@
     <dependency>
       <groupId>com.chongctech</groupId>
       <artifactId>device-backend-client</artifactId>
-      <version>v1.1.11-SNAPSHOT</version>
+      <version>v1.1.11-release</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
