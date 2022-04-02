@@ -11,7 +11,7 @@
 
   <parent>
     <groupId>com.chongctech</groupId>
-    <artifactId>service-dependency-parent</artifactId>
+    <artifactId>service-starter</artifactId>
     <version>v1.0.0-release</version>
   </parent>
 

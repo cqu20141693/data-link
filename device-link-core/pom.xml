@@ -32,8 +32,8 @@
     </dependency>
     <dependency>
       <groupId>com.chongctech</groupId>
-      <artifactId>service-common</artifactId>
-      <version>v1.1.7-release</version>
+      <artifactId>service-common-starter</artifactId>
+      <version>v1.2.0-release</version>
     </dependency>
     <dependency>
       <groupId>com.chongctech</groupId>

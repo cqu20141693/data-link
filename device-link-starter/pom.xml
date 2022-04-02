@@ -49,7 +49,7 @@
     <dependency>
       <groupId>com.chongctech</groupId>
       <artifactId>service-pulsar-starter</artifactId>
-      <version>v1.1.0-release</version>
+      <version>v1.2.0-release</version>
     </dependency>
     <dependency>
       <groupId>com.chongctech</groupId>
