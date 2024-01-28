@@ -10,8 +10,15 @@ spring:
       discovery:
         server-addr: 172.30.203.22:8848
         register-enabled: false
+  redis:
+    host: localhost
+    port: 6379
+    jedis:
+      pool:
+        max-active: 8
+        max-idle: 1
 com:
-  chongctech:
+  witeam:
     device:
       link:
         mqtt:
@@ -21,7 +28,7 @@ com:
           process-group-size: 4
           worker-group-size: 4
           max-link: 8000
-          min-heart-beat-second: 120
+          min-heart-beat-second: 30
     service:
       pulsar:
         service-url: pulsar://172.30.203.25:6650,172.30.203.26:6650,172.30.203.24:6650
@@ -30,20 +37,14 @@ com:
           jwt-token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjY3RlY2gifQ.TkCwKZIW-CCQEI6qjoAnEImpJzDymkYthWUymGQwArg
         producer:
           topics:
-            - name: persistent://cctech/devices/raw-link-event-topic
-            - name: persistent://cctech/devices/raw-publish-topic
-            - name: persistent://cctech/devices/raw-send-action-topic
+            - name: persistent://witeam/devices/raw-link-event-topic
+            - name: persistent://witeam/devices/raw-publish-topic
+            - name: persistent://witeam/devices/raw-send-action-topic
           batching-enabled: true
-pulsar:
-  topic:
-    out:
-      link-change-topic: persistent://cctech/devices/raw-link-event-topic
-      publish-topic: persistent://cctech/devices/raw-publish-topic
-      send-action-topic: persistent://cctech/devices/cmd-cycle-topic
 logging:
   level:
     com:
-      chongctech: debug
+      witeam: debug
       alibaba: warn
     org:
       apache:
